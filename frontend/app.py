@@ -29,7 +29,17 @@ def get_db_connection():
 # Login page
 @app.route('/')
 def home():
-    return render_template('home.html')
+    flights = display_flights()
+    return render_template('home.html', flights=flights)
+
+def display_flights():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM Flight")
+    flights = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return flights
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -90,6 +100,12 @@ def check_airlineStaff_credentials(email, password):
     if user:
         return True
     return False
+
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('/'))
 
 
 @app.route('/registration', methods=['GET', 'POST'])
