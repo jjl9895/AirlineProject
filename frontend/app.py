@@ -26,7 +26,12 @@ def get_db_connection():
     return connection
 
 # Login page
-@app.route('/', methods=['GET', 'POST'])
+@app.route('/')
+def home():
+    return render_template('home.html')
+
+
+@app.route('/login', methods=['GET', 'POST'])
 def login():
     error = None
     if request.method == 'POST':
@@ -72,6 +77,12 @@ def check_airlineStaff_credentials(email, password):
     if user:
         return True
     return False
+
+
+@app.route('/registration', methods=['GET', 'POST'])
+def register():
+    return render_template('registration.html')
+
 
 # Customer Home Page
 @app.route('/customerhome')
