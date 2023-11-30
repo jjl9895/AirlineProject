@@ -12,7 +12,6 @@ INSERT INTO Airline (name) VALUES ("Air Canada");
 INSERT INTO Airline (name) VALUES ("Emirates");
 
 --Airports
-
 INSERT INTO Airport (code, name, city, country, num_of_terminals, type) VALUES ("RDU", "Raleigh-Durham", "Raleigh", "USA", 2, "International");
 
 INSERT INTO Airport (code, name, city, country, num_of_terminals, type) VALUES ("LGA", "Laguardia", "NYC", "USA", 2, "Domestic");
