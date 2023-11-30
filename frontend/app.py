@@ -40,13 +40,13 @@ def check_credentials(email, password):
     cursor.close()
     conn.close()
 
-    if user and password:
+    if user:
         return True
     return False
 
 @app.route('/home')
 def home():
-    return "Welcome to the home page"
+    return render_template('customerhome.html')
 
 
 @app.route('/index')
