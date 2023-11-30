@@ -19,7 +19,7 @@ graceconfig = {
     'database': 'projectairport'
 }  
 # Database configuration
-db_config = jeffconfig
+db_config = graceconfig
 
 # Establishing a database connection
 def get_db_connection():
@@ -101,6 +101,19 @@ def check_airlineStaff_credentials(email, password):
         return True
     return False
 
+def register_customer(email, first_name, last_name, password, pass_num, pass_exp, pass_country, dob, building_num, street, apt_num, city, state, zipcode):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    query = "INSERT INTO `customer` (`email`, `first_name`, `last_name`, `password`, `passport_num`, `passport_expiration`, `passport_country`, `date_of_birth`, `building_num`, `street`, `apt_num`, `city`, `state`, `zip`) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"
+    cursor.execute(query, (email, first_name, last_name, password, pass_num, pass_exp, pass_country, dob, building_num, street, apt_num, city, state, zipcode))
+    user = cursor.fetchone()
+    cursor.close()
+    conn.close()
+
+    if user:
+        return True
+    return False
+
 
 @app.route('/logout')
 def logout():
@@ -108,9 +121,31 @@ def logout():
     return redirect(url_for('/'))
 
 
-@app.route('/registration', methods=['GET', 'POST'])
+@app.route('/customerregistration', methods=['GET', 'POST'])
 def register():
-    return render_template('registration.html')
+    error = None
+    if request.method == 'POST':
+        email = request.form['email']
+        first_name = request.form['first_name']
+        last_name = request.form['last_name']
+        password = request.form['password']
+        pass_num = request.form['pass_num']
+        pass_exp = request.form['pass_exp']
+        pass_country = request.form['pass_country']
+        dob = request.form['dob']
+        building_num = request.form['building_num']
+        street = request.form['street']
+        apt_num = request.form['apt_num']
+        city = request.form['city']
+        state = request.form['state']
+        zipcode = request.form['zipcode']
+        
+        if register_customer(email, first_name, last_name, password, pass_num, pass_exp, pass_country, dob, building_num, street, apt_num, city, state, zipcode):
+            return redirect(url_for('login'))  # Redirect to customer home page
+        else:    
+            error = 'Invalid Entries, Please Fill Out All Fields'
+        
+    return render_template('customerregistration.html')
 
 
 # Customer Home Page
@@ -122,6 +157,16 @@ def customerhome():
 @app.route('/airlineStaffhome')
 def airlineStaffhome():
     return render_template('airlinestaffhome.html')
+
+# Customer My Flights Page
+@app.route('/customerflights')
+def customerflights():
+    return render_template('customerflights.html')
+
+# Customer Flight Search Page
+@app.route('/customersearch')
+def customersearch():
+    return render_template('customersearch.html')
 
 if __name__ == '__main__':
     app.run(debug=True)
