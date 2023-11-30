@@ -1,8 +1,9 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, session
 import mysql.connector
 
 
 app = Flask(__name__)
+app.secret_key = '184nHU'
 
 jeffconfig = {
     'host': 'localhost',            
@@ -34,18 +35,30 @@ def home():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     error = None
+
+    if check_customer_credentials(session.get('email'), session.get('password')):
+        return redirect(url_for('customerhome'))
+    elif check_airlineStaff_credentials(session.get('email'), session.get('password')):
+        return redirect(url_for('airlineStaffhome'))
+    
     if request.method == 'POST':
         email = request.form['email']
         password = request.form['password']
         
         if check_customer_credentials(email, password):
+            session['email'] = email
+            session['password'] = password
             return redirect(url_for('customerhome'))  # Redirect to customer home page
+            
         elif check_airlineStaff_credentials(email, password):
+            session['email'] = email
+            session['password'] = password
             return redirect(url_for('airlineStaffhome')) # Redirect to airline staff home page 
         else:    
             error = 'Invalid credentials'
 
     return render_template('login.html', error=error)
+
 
 def check_customer_credentials(email, password):
     conn = get_db_connection()
