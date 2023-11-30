@@ -31,10 +31,10 @@ INSERT INTO customer (email, first_name, last_name, password, passport_num, pass
 INSERT INTO customer (email, first_name, last_name, password, passport_num, passport_expiration, passport_country, date_of_birth, building_num, street, apt_num, city, state, zip) VALUES ("rdey@nyu.edu", "Ratan", "Dey", "databses!", "12312314", "2026-07-03", "USA", "1995-01-01", 2, "Metrotech", 900, "NYC", "NY", 11201);
 
 INSERT INTO Airplane (id, num_of_seats, manufacturer, model_num, manufacture_date, age, airline_name)
-VALUES (758746, 410, "Boeing", 747, "2004-01-23", 19, "Air Canada")
+VALUES (758746, 410, "Boeing", 747, "2004-01-23", 19, "Air Canada");
 
 INSERT INTO Airplane (id, num_of_seats, manufacturer, model_num, manufacture_date, age, airline_name)
-VALUES (156253, 200, "Boeing", 646, "2004-01-22", 19, "Emirates")
+VALUES (156253, 200, "Boeing", 646, "2004-01-22", 19, "Emirates");
 
 INSERT INTO airlinestaffemails (staff_username, email) VALUES ("iloveplanes123", "sigma@gmail.com");
 
