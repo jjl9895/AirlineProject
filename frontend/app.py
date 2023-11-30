@@ -7,9 +7,9 @@ app = Flask(__name__)
 # Database configuration
 db_config = {
     'host': 'localhost',            
-    'user': 'Jeff',         
-    'password': '[_ODOim51K7VM9fi',    
-    'database': 'AirportProject'
+    'user': 'graceableidinger',         
+    'password': '12345',    
+    'database': 'projectairport'
 }
 
 # Establishing a database connection
