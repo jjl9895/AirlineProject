@@ -96,17 +96,36 @@ def register_customer(email, first_name, last_name, password, pass_num, pass_exp
     cursor = conn.cursor()
     query = "INSERT INTO `customer` (`email`, `first_name`, `last_name`, `password`, `passport_num`, `passport_expiration`, `passport_country`, `date_of_birth`, `building_num`, `street`, `apt_num`, `city`, `state`, `zip`) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"
     cursor.execute(query, (email, first_name, last_name, password, pass_num, pass_exp, pass_country, dob, building_num, street, apt_num, city, state, zipcode))
-    user = cursor.fetchone()
+    conn.commit()
     cursor.close()
     conn.close()
 
+    return True
+
+def register_staff(username, first_name, last_name, password, dob, airline, email, phone):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM Airline WHERE name = %s", (airline,))
+    user = cursor.fetchone()
     if user:
-        return True
-    return False
+        query = "INSERT INTO `airlinestaff` (`username`, `password`, `first_name`, `last_name`, `date_of_birth`, `airline_name`) VALUES (%s, %s, %s, %s, %s, %s);"
+        cursor.execute(query, (username, first_name, last_name, password, dob, airline))
+        query = "INSERT INTO `airlinestaffemails` (`staff_username`, `email`) VALUES (%s, %s);"
+        cursor.execute(query, (username, email))
+        query = "INSERT INTO `airlinestaffphonenumbers` (`staff_username`, `phone_number`) VALUES (%s, %s);"
+        cursor.execute(query, (username, phone))
+        conn.commit()
+        cursor.close()
+        conn.close()
+    else:
+        cursor.close()
+        conn.close()
+        return False
+    return True
 
 
 @app.route('/customerregistration', methods=['GET', 'POST'])
-def register():
+def customerregister():
     error = None
     if request.method == 'POST':
         email = request.form['email']
@@ -124,13 +143,35 @@ def register():
         state = request.form['state']
         zipcode = request.form['zipcode']
         
-        if register_customer(email, first_name, last_name, password, pass_num, pass_exp, pass_country, dob, building_num, street, apt_num, city, state, zipcode):
-            return redirect(url_for('login'))  # Redirect to customer home page
-        else:    
-            error = 'Invalid Entries, Please Fill Out All Fields'
+        if check_customer_credentials(email, password):
+            error = 'This email is already in use'
+        elif register_customer(email, first_name, last_name, password, pass_num, pass_exp, pass_country, dob, building_num, street, apt_num, city, state, zipcode):
+            return redirect(url_for('login')) 
         
     return render_template('customerregistration.html')
 
+
+@app.route('/staffregistration', methods=['GET', 'POST'])
+def staffregister():
+    error = None
+    if request.method == 'POST':
+        username = request.form['username']
+        first_name = request.form['first_name']
+        last_name = request.form['last_name']
+        password = request.form['password']
+        airline = request.form['airline']
+        dob = request.form['dob']
+        email = request.form['email']
+        phone = request.form['phone']
+
+        if check_airlineStaff_credentials(username, password):
+            error = 'This username is already in use'
+        elif register_staff(username, first_name, last_name, password, dob, airline, email, phone):
+            return redirect(url_for('login')) 
+        else:    
+            error = 'Invalid Airline'
+        
+    return render_template('staffregistration.html')
 
 # Customer Home Page
 @app.route('/customerhome')
