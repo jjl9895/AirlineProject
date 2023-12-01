@@ -1,4 +1,19 @@
-<form method="post" action="/staffregistration">
+<html>
+<head>
+    <title>Register</title>
+</head>
+
+<body>
+    <h1>Staff Registration</h1>
+    {% if message %}
+        <p>{{ message }}</p>
+    {% endif %}
+    {% if show_login_popup %}
+        <div>
+            <p>Username already in use. Do you want to <a href="/stafflogin">login</a>?</p>
+        </div>
+    {% endif %}
+    <form method="post" action="/staffregistration">
     Username: <input type="text" name="username" required><br>
     First Name: <input type="text" name="first_name" required><br>
     Last Name: <input type="text" name="last_name" required><br>
@@ -8,4 +23,8 @@
     Email: <input type="email" name="email" required><br>
     Phone Number: <input type="tel" name="phone" required><br>
     <input type="submit" value="Register" >
-</form>
+    </form>
+
+</body>
+
+</html>

@@ -19,7 +19,7 @@ graceconfig = {
     'database': 'projectairport'
 }  
 # Database configuration
-db_config = jeffconfig
+db_config = graceconfig
 
 # Establishing a database connection
 def get_db_connection():
@@ -157,7 +157,7 @@ def logout():
 
 @app.route('/customerregistration', methods=['GET', 'POST'])
 def customerregister():
-    error = None
+    show_login_popup = False
     if request.method == 'POST':
         email = request.form['email']
         first_name = request.form['first_name']
@@ -174,17 +174,18 @@ def customerregister():
         state = request.form['state']
         zipcode = request.form['zipcode']
         
-        if check_customer_credentials(email, password):
-            error = 'This email is already in use'
+        if check_customer_credentials(email, password)[0]:
+            show_login_popup = True
         elif register_customer(email, first_name, last_name, password, pass_num, pass_exp, pass_country, dob, building_num, street, apt_num, city, state, zipcode):
-            return redirect(url_for('login')) 
+            return redirect(url_for('customerlogin')) 
         
-    return render_template('customerregistration.html')
+    return render_template('customerregistration.html', show_login_popup = show_login_popup)
 
 
 @app.route('/staffregistration', methods=['GET', 'POST'])
 def staffregister():
-    error = None
+    message = None
+    show_login_popup = False
     if request.method == 'POST':
         username = request.form['username']
         first_name = request.form['first_name']
@@ -195,14 +196,14 @@ def staffregister():
         email = request.form['email']
         phone = request.form['phone']
 
-        if check_airlineStaff_credentials(username, password):
-            error = 'This username is already in use'
+        if check_airlineStaff_credentials(username, password)[0]:
+            show_login_popup = True
         elif register_staff(username, first_name, last_name, password, dob, airline, email, phone):
-            return redirect(url_for('login')) 
+            return redirect(url_for('stafflogin')) 
         else:    
-            error = 'Invalid Airline'
+            message = "This airline is invalid. Please check airline name."
         
-    return render_template('staffregistration.html')
+    return render_template('staffregistration.html', message = message, show_login_popup = show_login_popup)
 
 # Customer Home Page
 @app.route('/customerhome')
