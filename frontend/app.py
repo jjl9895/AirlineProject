@@ -19,7 +19,7 @@ graceconfig = {
     'database': 'projectairport'
 }  
 # Database configuration
-db_config = graceconfig
+db_config = jeffconfig
 
 # Establishing a database connection
 def get_db_connection():
@@ -42,64 +42,79 @@ def display_flights():
     return flights
 
 
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    error = None
+@app.route('/customerlogin', methods=['GET', 'POST'])
+def customerlogin():
+    message = None
+    show_register_popup = False
 
-    if check_customer_credentials(session.get('email'), session.get('password')):
-        return redirect(url_for('customerhome'))
-    elif check_airlineStaff_credentials(session.get('email'), session.get('password')):
-        return redirect(url_for('airlineStaffhome'))
-    
     if request.method == 'POST':
         email = request.form['email']
         password = request.form['password']
         
-        if check_customer_credentials(email, password):
-            session['email'] = email
-            session['password'] = password
-            return redirect(url_for('customerhome'))  # Redirect to customer home page
-            
-        elif check_airlineStaff_credentials(email, password):
-            session['email'] = email
-            session['password'] = password
-            return redirect(url_for('airlineStaffhome')) # Redirect to airline staff home page 
-        else:    
-            error = 'Invalid credentials'
+        user_exists, password_correct = check_customer_credentials(email, password)
+        if user_exists:
+            if password_correct:
+                session['email'] = email
+                return redirect(url_for('customerhome'))  # Redirect to customer home page
+            else:
+                message = 'Wrong password. Try again.'
+        else:
+            show_register_popup = True  # User does not exist, offer registration
 
-    return render_template('login.html', error=error)
+    return render_template('customerlogin.html', message=message, show_register_popup=show_register_popup)
+
+
+@app.route('/stafflogin', methods=['GET', 'POST'])
+def stafflogin():
+    message = None
+    show_register_popup = False
+
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        
+        user_exists, password_correct = check_airlineStaff_credentials(username, password)
+        if user_exists:
+            if password_correct:
+                session['email'] = username
+                return redirect(url_for('airlineStaffhome'))  # Redirect to customer home page
+            else:
+                message = 'Wrong password. Try again.'
+        else:
+            show_register_popup = True  # User does not exist, offer registration
+
+    return render_template('stafflogin.html', message=message, show_register_popup=show_register_popup)
 
 
 def check_customer_credentials(email, password):
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM Customer WHERE email = %s AND password = %s", (email, password))
+    cursor.execute("SELECT password FROM Customer WHERE email = %s", (email,))
     user = cursor.fetchone()
     cursor.close()
     conn.close()
 
     if user:
-        return True
-    return False
+        password_correct = user[0] == password
+        return True, password_correct
+    return False, False
 
-def check_airlineStaff_credentials(email, password):
+def check_airlineStaff_credentials(username, password):
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    query = "   SELECT * FROM AirlineStaffEmails as asemail Join AirlineStaff as astaff \
-                WHERE \
-                asemail.staff_username = astaff.username \
-                AND asemail.email = %s \
-                AND astaff.password = %s "
-
-    cursor.execute(query, (email, password))
+    query = "SELECT password FROM AirlineStaff WHERE username = %s"
+    
+    cursor.execute(query, (username,))
     user = cursor.fetchone()
     cursor.close()
     conn.close()
 
     if user:
-        return True
-    return False
+        password_correct = user[0] == password
+        return True, password_correct
+    return False, False
+
 
 def register_customer(email, first_name, last_name, password, pass_num, pass_exp, pass_country, dob, building_num, street, apt_num, city, state, zipcode):
     conn = get_db_connection()

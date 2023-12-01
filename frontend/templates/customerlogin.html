@@ -1,0 +1,24 @@
+<html>
+<head>
+    <title>Login</title>
+</head>
+
+<body>
+    <h1>Customer Login</h1>
+    {% if message %}
+        <p>{{ message }}</p>
+    {% endif %}
+    {% if show_register_popup %}
+        <div>
+            <p>Username not found. Do you want to <a href="/register">register</a>?</p>
+        </div>
+    {% endif %}
+    <form method="post" action="/customerlogin">
+        Email: <input type="email" name="email"><br>
+        Password: <input type="password" name="password"><br>
+        <input type="submit" value="Login">
+    </form>
+
+</body>
+
+</html>
