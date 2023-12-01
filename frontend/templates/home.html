@@ -8,14 +8,37 @@
   
   <nav>
     <ul>
-      <li><a href="/login">Login</a></li>
+      <li><a href="/customerlogin">Login</a></li>
+      <li><a href="/stafflogin">Staff Login</a></li>
       <li><a href="/customerregistration">Register as a Customer</a></li>
       <li><a href="/staffregistration">Register as a Staff Member</a></li>
     </li>
     </ul>
   </nav>
   
-  <!-- Other components can be added here -->
+  <table border="1">
+    <tr>
+        <!-- Replace with your actual column names -->
+        <th>Flight Number</th>
+        <th>Departure Date</th>
+        <th>Departure Time</th>
+        <th>Arrival Time</th>
+        <th>Arrival Date</th>
+        <th>Base Price</th>
+        <th>Airplane ID</th>
+        <th>Departure Airport</th>
+        <th>Arrival Airport</th>
+        <th>Status</th>
+        
+    </tr>
+    {% for row in flights %}
+    <tr>
+        {% for item in row %}
+        <td>{{ item }}</td>
+        {% endfor %}
+    </tr>
+    {% endfor %}
+</table>
   
 </body>
 </html>
