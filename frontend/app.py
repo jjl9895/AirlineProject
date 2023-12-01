@@ -76,7 +76,7 @@ def stafflogin():
         user_exists, password_correct = check_airlineStaff_credentials(username, password)
         if user_exists:
             if password_correct:
-                session['email'] = username
+                session['username'] = username
                 return redirect(url_for('airlineStaffhome'))  # Redirect to customer home page
             else:
                 message = 'Wrong password. Try again.'
@@ -104,7 +104,7 @@ def check_airlineStaff_credentials(username, password):
     cursor = conn.cursor()
     
     query = "SELECT password FROM AirlineStaff WHERE username = %s"
-    
+
     cursor.execute(query, (username,))
     user = cursor.fetchone()
     cursor.close()
