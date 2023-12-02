@@ -16,6 +16,7 @@
     </form>
 
     {% if create_type == "flight" %}
+        <h2>Add a 
         <form method="post" action="/create_flight">
             Flight Number: <input type="number" name="flight_num" min="0" max="9999" required><br>
             Departure Date: <input type="date" name="dep_date" required><br>

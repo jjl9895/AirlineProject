@@ -50,6 +50,7 @@
     <a href="/staffhome">Home</a>
     <a href="/create">Create New</a>
     <a href="/staffstats">View Stats</a>
+    <a href="/logout">Logout</a>
 </div>
 
 <div class="content">
@@ -81,7 +82,24 @@
     <form method="post" action="/airlineStaffhome">
         Start Date: <input type="date" name="start_date" required><br>
         End Date: <input type="date" name="end_date" required><br>
-        <input type="submit" value="Register" >
+        <input type="submit" value="Search" >
+    </form>
+
+    <h2> Change Status of a Flight:</h2>
+    <br><form method="post" action="/change_status">
+        <label for="dynamicDropdown">Flight Number:</label>
+        <select id="dynamicDropdown" name="flight_num" required>
+            {% for option in flight_nums %}
+            <option value="{{ option[0] }}">{{ option[0] }}</option>
+        {% endfor %}
+        </select>
+        <label for="selectstatus">Status:</label>
+            <select id="selectstatus" name="status">
+                <option value="on time">On Time</option>
+                <option value="delayed">Delayed</option>
+                <option value="canceled">Canceled</option>
+            </select><br>
+        <input type="submit" value="Change Status" >
     </form>
 </div>
 

@@ -206,7 +206,7 @@ def staffregister():
 @app.route('/logout')
 def logout():
     session.clear()
-    return redirect(url_for('/'))
+    return redirect(url_for('home'))
 
 def last_year_total():
     conn = get_db_connection()
@@ -231,13 +231,17 @@ def airlineStaffhome():
     flights = None
     start_date = datetime.now().date()
     end_date = start_date + relativedelta(days=30)
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute ("SELECT num FROM flight")
+    flight_nums = cursor.fetchall()
+
     if request.method == 'POST':
         if 'start_date' in request.form and 'end_date' in request.form:
             start_date = request.form.get('start_date')
             end_date = request.form.get('end_date')
     try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
         query = """
             SELECT * FROM Flight
             WHERE dep_date BETWEEN %s AND %s
@@ -250,11 +254,34 @@ def airlineStaffhome():
         # Handle exception or invalid input
         print(f"An error occurred: {e}")
 
-    return render_template('staffhome.html', flights=flights)
+    return render_template('staffhome.html', flights=flights, flight_nums=flight_nums)
+
+@app.route('/change_status', methods=['POST'])
+def changestatus():
+    if request.method == 'POST':
+        try:
+            status = request.form.get('status')
+            flight_num = request.form.get('flight_num')
+
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            query = "UPDATE `flight` SET `status` = %s WHERE `num` = %s"
+            cursor.execute(query, (status, flight_num))
+            conn.commit()
+        except Exception as e:
+            conn.rollback()
+            cursor.close()
+            conn.close()
+            return f"An error occurred: {e}", 500
+        finally:
+            cursor.close()
+            conn.close()
+    return redirect(url_for('airlineStaffhome'))
 
 # Customer My Flights Page
 @app.route('/customerflights')
 def customerflights():
+
     return render_template('customerflights.html')
 
 # Customer Flight Search Page
