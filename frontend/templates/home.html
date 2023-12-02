@@ -16,30 +16,5 @@
     </li>
     </ul>
   </nav>
-  
-  <table border="1">
-    <tr>
-        <th>Flight Number</th>
-        <th>Departure Date</th>
-        <th>Departure Time</th>
-        <th>Arrival Time</th>
-        <th>Arrival Date</th>
-        <th>Base Price</th>
-        <th>Airplane ID</th>
-        <th>Airline</th>
-        <th>Departure Airport</th>
-        <th>Arrival Airport</th>
-        <th>Status</th>
-        
-    </tr>
-    {% for row in flights %}
-    <tr>
-        {% for item in row %}
-        <td>{{ item }}</td>
-        {% endfor %}
-    </tr>
-    {% endfor %}
-</table>
-  
 </body>
 </html>
