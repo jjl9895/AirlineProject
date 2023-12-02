@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, session
 import mysql.connector
 
 
+
 app = Flask(__name__)
 app.secret_key = '184nHU'
 
@@ -29,8 +30,8 @@ def get_db_connection():
 # Login page
 @app.route('/')
 def home():
-    flights = display_flights()
-    return render_template('home.html', flights=flights)
+    # flights = display_flights()
+    return render_template('home.html')
 
 def display_flights():
     conn = get_db_connection()
@@ -133,7 +134,7 @@ def register_customer(email, first_name, last_name, password, pass_num, pass_exp
 @app.route('/logout')
 def logout():
     session.clear()
-    return redirect(url_for('/'))
+    return redirect(url_for('home'))
 
 
 @app.route('/customerregistration', methods=['GET', 'POST'])
@@ -179,9 +180,27 @@ def customerflights():
     return render_template('customerflights.html')
 
 # Customer Flight Search Page
-@app.route('/customersearch')
-def customersearch():
-    return render_template('customersearch.html')
+@app.route('/searchflights', methods=['GET', 'POST'])
+def searchflights():
+    flights = None  # Default to no flights
+
+    if request.method == 'POST':
+        departure_airport = request.form['departure_airport']
+        arrival_airport = request.form['arrival_airport']
+        departure_date = request.form['departure_date']
+
+        # Query the database for flights
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        query = "SELECT num, dep_airport, arr_airport, dep_date, dep_time, arr_date, arr_time, status \
+              FROM Flight WHERE dep_airport = %s AND arr_airport = %s AND dep_date = %s"
+        cursor.execute(query, (departure_airport, arrival_airport, departure_date))
+        flights = cursor.fetchall()
+        cursor.close()
+        conn.close()
+
+    return render_template('searchflights.html', flights=flights)
+
 
 if __name__ == '__main__':
     app.run(debug=True)

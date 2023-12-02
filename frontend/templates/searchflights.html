@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Search Flights</title>
+</head>
+<body>
+    <h1>Search for Flights</h1>
+    <form method="post" action="/searchflights">
+        Departure Airport: <input type="text" name="departure_airport"><br>
+        Arrival Airport: <input type="text" name="arrival_airport"><br>
+        Departure Date: <input type="date" name="departure_date"><br>
+        <input type="submit" value="Search">
+    </form>
+
+    {% if flights %}
+        <h2>Search Results</h2>
+        <table border="1">
+            <tr>
+                <th>Flight Number</th>
+                <th>Departure Airport</th>
+                <th>Arrival Airport</th>
+                <th>Departure Date</th>
+                <th>Departure Time</th>
+                <th>Arrival Date</th>
+                <th>Arrival Time</th>
+                <th>Flight Status</th>
+            </tr>
+            {% for row in flights %}
+            <tr>
+                {% for item in row %}
+                <td>{{ item }}</td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </table>
+    {% else %}
+        <p>No flights found. Please modify your search criteria.</p>
+    {% endif %}
+</body>
+</html>
