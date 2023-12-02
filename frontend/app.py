@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta #pip install python-dateutil
 
 
+
 app = Flask(__name__)
 app.secret_key = '184nHU'
 
@@ -31,8 +32,8 @@ def get_db_connection():
 # Login page
 @app.route('/')
 def home():
-    flights = display_flights()
-    return render_template('home.html', flights=flights)
+    # flights = display_flights()
+    return render_template('home.html')
 
 def display_flights():
     conn = get_db_connection()
@@ -78,7 +79,7 @@ def stafflogin():
         user_exists, password_correct = check_airlineStaff_credentials(username, password)
         if user_exists:
             if password_correct:
-                session['email'] = username
+                session['username'] = username
                 return redirect(url_for('airlineStaffhome'))  # Redirect to customer home page
             else:
                 message = 'Wrong password. Try again.'
@@ -106,7 +107,7 @@ def check_airlineStaff_credentials(username, password):
     cursor = conn.cursor()
     
     query = "SELECT password FROM AirlineStaff WHERE username = %s"
-    
+
     cursor.execute(query, (username,))
     user = cursor.fetchone()
     cursor.close()
@@ -281,13 +282,44 @@ def changestatus():
 # Customer My Flights Page
 @app.route('/customerflights')
 def customerflights():
+    customer = session['email']
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    query = "SELECT f.num, f.dep_airport, f.arr_airport, f.dep_date, f.dep_time, f.arr_date, f.arr_time, f.status \
+            FROM PurchaseHistory as ph \
+            JOIN Ticket as t on t.id = ph.ticket_id \
+            JOIN Flight as f on f.num = t.flight_num \
+            WHERE ph.customer_email = %s AND f.dep_date > CURDATE()" 
+    
+    cursor.execute(query, (customer,))
+    flights = cursor.fetchall()
+    cursor.close()
+    conn.close()
 
-    return render_template('customerflights.html')
+    return render_template('customerflights.html', flights=flights)
 
 # Customer Flight Search Page
-@app.route('/customersearch')
-def customersearch():
-    return render_template('customersearch.html')
+@app.route('/searchflights', methods=['GET', 'POST'])
+def searchflights():
+    flights = None  # Default to no flights
+
+    if request.method == 'POST':
+        departure_airport = request.form['departure_airport']
+        arrival_airport = request.form['arrival_airport']
+        departure_date = request.form['departure_date']
+
+        # Query the database for flights
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        query = "SELECT num, dep_airport, arr_airport, dep_date, dep_time, arr_date, arr_time, status \
+              FROM Flight WHERE dep_airport = %s AND arr_airport = %s AND dep_date = %s"
+        cursor.execute(query, (departure_airport, arrival_airport, departure_date))
+        flights = cursor.fetchall()
+        cursor.close()
+        conn.close()
+
+    return render_template('searchflights.html', flights=flights)
+
 
 @app.route('/create', methods=['GET','POST'])
 def create():
