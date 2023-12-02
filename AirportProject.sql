@@ -295,7 +295,8 @@ CREATE TABLE `PurchaseHistory` (
 
 INSERT INTO `PurchaseHistory` (`customer_email`, `purchase_time`, `card_num`, `exp_date`, `purchase_date`, `first_name`, `last_name`, `name_on_card`, `date_of_birth`, `card_type`, `ticket_id`) VALUES
 ('grace@gmail.com', '02:03:40', 2345234523452345, '2026-12-30', '2023-11-07', 'Grace', 'Able', 'Grace Ableidinger', '2004-05-13', 'Debit', 246),
-('jeff@gmail.com', '01:00:00', 1234123412341234, '2026-11-06', '2023-11-07', 'Jeff', 'Lin', 'Jeffrey Lin', '2004-03-16', 'Credit', 123);
+('jeff@gmail.com', '01:00:00', 1234123412341234, '2026-11-06', '2023-11-07', 'Jeff', 'Lin', 'Jeffrey Lin', '2004-03-16', 'Credit', 123)
+('danpoker@gmail.com', '03:05:34', 9867887687688678, '2026-12-06', '2023-11-07', 'Dan', 'Zhang', 'Dan Zhang', '2003-05-16', 'Credit', 589);
 
 -- --------------------------------------------------------
 
@@ -344,7 +345,8 @@ CREATE TABLE `Ticket` (
 
 INSERT INTO `Ticket` (`id`, `price`, `flight_num`, `flight_dep_date`, `flight_dep_time`, `airline_name`, `customer_email`) VALUES
 (123, 100, 1234, '2023-11-28', '01:31:00', 'Air Canada', 'jeff@gmail.com'),
-(246, 100, 4842, '2023-11-26', '12:00:00', 'Emirates', 'grace@gmail.com');
+(246, 100, 4842, '2023-11-26', '12:00:00', 'Emirates', 'grace@gmail.com')
+(589, 100, 5676, '2023-12-12', '12:00:00', 'JetBlue', 'danpoker@gmail.com');
 
 --
 -- Indexes for dumped tables

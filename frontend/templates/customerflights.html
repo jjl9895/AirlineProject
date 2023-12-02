@@ -4,13 +4,25 @@
   <title>Customer Flights</title>
 </head>
 <body>
-  <h1>Welcome to the My Flights Page</h1>
-  
-  <paragraph>
-    Here is where you see all your flights as the customer.
-  </paragraph>
-  
-  <!-- Other components can be added here -->
+  <h1>My Flights</h1>
+  <table border="1">
+    <tr>
+      <th>Flight Number</th>
+      <th>Departure Airport</th>
+      <th>Arrival Airport</th>
+      <th>Departure Date</th>
+      <th>Departure Time</th>
+      <th>Arrival Date</th>
+      <th>Arrival Time</th>
+      <th>Flight Status</th>
+    </tr>
+    {% for row in flights %}
+    <tr>
+      {% for item in row %}
+      <td>{{ item }}</td>
+      {% endfor %}
+    </tr>
+    {% endfor %}
   
 </body>
 </html>

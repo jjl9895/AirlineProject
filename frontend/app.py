@@ -177,7 +177,21 @@ def airlineStaffhome():
 # Customer My Flights Page
 @app.route('/customerflights')
 def customerflights():
-    return render_template('customerflights.html')
+    customer = session['email']
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    query = "SELECT f.num, f.dep_airport, f.arr_airport, f.dep_date, f.dep_time, f.arr_date, f.arr_time, f.status \
+            FROM PurchaseHistory as ph \
+            JOIN Ticket as t on t.id = ph.ticket_id \
+            JOIN Flight as f on f.num = t.flight_num \
+            WHERE ph.customer_email = %s AND f.dep_date > CURDATE()" 
+    
+    cursor.execute(query, (customer,))
+    flights = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    return render_template('customerflights.html', flights=flights)
 
 # Customer Flight Search Page
 @app.route('/searchflights', methods=['GET', 'POST'])
