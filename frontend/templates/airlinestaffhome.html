@@ -42,25 +42,46 @@
 <body>
 
 <div class="header">
-    <h1>Welcome to Your AirlineStaff Home Page</h1>
+    <h1>Welcome to Your Airline Staff Home Page</h1>
     <p>Your one-stop destination for all your needs.</p>
 </div>
 
 <div class="nav-bar">
-    <a href="/">Home</a>
-    <a href="/services">Services</a>
-    <a href="/contact">Contact</a>
-    <a href="/about">About</a>
+    <a href="/airlinestaffhome">Home</a>
+    <a href="/create">Create New</a>
 </div>
 
 <div class="content">
-    <h2>About Our Services</h2>
-    <p>Here you can add details about the services you offer to your customers.</p>
+    
+    <table border="1">
+        <tr>
+            <th>Flight Number</th>
+            <th>Departure Date</th>
+            <th>Departure Time</th>
+            <th>Arrival Time</th>
+            <th>Arrival Date</th>
+            <th>Base Price</th>
+            <th>Airplane ID</th>
+            <th>Airline Name</th>
+            <th>Departure Airport</th>
+            <th>Arrival Airport</th>
+            <th>Status</th>
+            
+        </tr>
+        {% for row in flights %}
+        <tr>
+            {% for item in row %}
+            <td>{{ item }}</td>
+            {% endfor %}
+        </tr>
+        {% endfor %}
+    </table>
 
-    <h2>Special Offers</h2>
-    <p>Details about any special offers or discounts can go here.</p>
-
-    <!-- More content sections can be added here -->
+    <form method="post" action="/airlineStaffhome">
+        Start Date: <input type="date" name="start_date" required><br>
+        End Date: <input type="date" name="end_date" required><br>
+        <input type="submit" value="Register" >
+    </form>
 </div>
 
 

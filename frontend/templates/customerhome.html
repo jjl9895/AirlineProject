@@ -29,9 +29,24 @@
             background-color: #ddd;
             color: black;
         }
-        .content {
-            padding: 20px;
+        .left-element {
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: white;
+            padding: 10px;
         }
+
+        .right-element {
+            position: absolute;
+            right: 0;
+            top: 45%;
+            transform: translateY(-50%);
+            background-color: white;
+            padding: 10px;
+        }
+
         .footer {
             background-color: #f1f1f1;
             padding: 10px;
@@ -52,16 +67,13 @@
     <a href="/customersearch">Search Flights</a>
 </div>
 
-<div class="content">
-    <h2>About Our Services</h2>
-    <p>Here you can add details about the services you offer to your customers.</p>
-
-    <h2>Special Offers</h2>
-    <p>Details about any special offers or discounts can go here.</p>
-
-    <!-- More content sections can be added here -->
+<div class="left-element">
+    <h2>Last year you spent:</h2>
+    <h1>${{year_spending}}</h1>
 </div>
-
+<div class="right-element">
+    <h2>Your spending summary for the last 6 months:</h2>
+</div>
 
 </body>
 </html>

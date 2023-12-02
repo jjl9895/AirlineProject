@@ -1,0 +1,40 @@
+<html>
+<head>
+    <title>Create</title>
+</head>
+
+<body>
+    <form method="post" action="/create">
+        <label for="selectcreation">Add a New:</label>
+        <select id="selectcreation" name="creation">
+            <option value="flight">Flight</option>
+            <option value="airplane">Airplane</option>
+            <option value="airport">Airport</option>
+            <option value="maintenance">Maintenance Period</option>
+        </select>
+    </form>
+
+    {% if creation == "flight" %}
+        <form method="post" action="/createflight">
+            Flight Number: <input type="number" name="flight_num" min="0" max="9999" required><br>
+            Departure Date: <input type="date" name="dep_date" required><br>
+            Departure Time: <input type="time" name="dep_time" required><br>
+            Arrival Date: <input type="date" name="arr_date" required><br>
+            Arrival Time: <input type="time" name="arr_time" required><br>
+            Base Price: <input type="number" name="base_price" min="0" required><br>
+            Airplane ID: <input type="number" name="airplane_id" required><br>
+            Departure Airport: <input type="text" name="dep_airport" required><br>
+            Arrival Airport: <input type="text" name="arr_airport" required><br>
+            <label for="selectstatus">Status:</label>
+            <select id="selectstatus" name="status">
+                <option value="on time">On Time</option>
+                <option value="delayed">Delayed</option>
+                <option value="canceled">Canceled</option>
+            </select>
+            <input type="submit" value="Register" >
+        </form>
+    {% endif %}
+
+</body>
+
+</html>

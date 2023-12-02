@@ -1,5 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, session
 import mysql.connector
+from datetime import datetime, timedelta
+from dateutil.relativedelta import relativedelta #pip install python-dateutil
 
 
 app = Flask(__name__)
@@ -116,11 +118,13 @@ def check_airlineStaff_credentials(username, password):
     return False, False
 
 
-def register_customer(email, first_name, last_name, password, pass_num, pass_exp, pass_country, dob, building_num, street, apt_num, city, state, zipcode):
+def register_customer(email, first_name, last_name, password, pass_num, pass_exp, pass_country, dob, building_num, street, apt_num, city, state, zipcode, phone):
     conn = get_db_connection()
     cursor = conn.cursor()
     query = "INSERT INTO `customer` (`email`, `first_name`, `last_name`, `password`, `passport_num`, `passport_expiration`, `passport_country`, `date_of_birth`, `building_num`, `street`, `apt_num`, `city`, `state`, `zip`) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"
     cursor.execute(query, (email, first_name, last_name, password, pass_num, pass_exp, pass_country, dob, building_num, street, apt_num, city, state, zipcode))
+    query = "INSERT INTO `customerphonenumbers` (`customer_email`, `phone_number`) VALUES (%s, %s);"
+    cursor.execute(query, (email, phone))
     conn.commit()
     cursor.close()
     conn.close()
@@ -148,7 +152,18 @@ def register_staff(username, first_name, last_name, password, dob, airline, emai
         return False
     return True
 
+def last_year_total():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    query = "SELECT FORMAT(SUM(price), 2) AS total FROM ticket JOIN purchasehistory ON purchasehistory.ticket_id = ticket.id WHERE purchasehistory.customer_email = %s AND purchase_date BETWEEN %s AND %s;"
+    one_year_ago = datetime.now()- timedelta(days=365)
+    cursor.execute(query, (session['email'], one_year_ago.date(), datetime.now().date()))
+    total = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return total[0]
 
+    
 @app.route('/logout')
 def logout():
     session.clear()
@@ -173,10 +188,11 @@ def customerregister():
         city = request.form['city']
         state = request.form['state']
         zipcode = request.form['zipcode']
+        phone = request.form['phone']
         
         if check_customer_credentials(email, password)[0]:
             show_login_popup = True
-        elif register_customer(email, first_name, last_name, password, pass_num, pass_exp, pass_country, dob, building_num, street, apt_num, city, state, zipcode):
+        elif register_customer(email, first_name, last_name, password, pass_num, pass_exp, pass_country, dob, building_num, street, apt_num, city, state, zipcode, phone):
             return redirect(url_for('customerlogin')) 
         
     return render_template('customerregistration.html', show_login_popup = show_login_popup)
@@ -208,12 +224,35 @@ def staffregister():
 # Customer Home Page
 @app.route('/customerhome')
 def customerhome():
-    return render_template('customerhome.html')
+    year_spending = last_year_total()
+    return render_template('customerhome.html', year_spending=year_spending)
 
 # Airline Staff Home Page
-@app.route('/airlineStaffhome')
+@app.route('/airlineStaffhome', methods=['GET', 'POST'])
 def airlineStaffhome():
-    return render_template('airlinestaffhome.html')
+    flights = None
+    start_date = datetime.now().date()
+    end_date = start_date + relativedelta(days=30)
+    if request.method == 'POST':
+        if 'start_date' in request.form and 'end_date' in request.form:
+            start_date = request.form.get('start_date')
+            end_date = request.form.get('end_date')
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        query = """
+            SELECT * FROM Flight
+            WHERE dep_date BETWEEN %s AND %s
+        """
+        cursor.execute(query, (start_date, end_date))
+        flights = cursor.fetchall()
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        # Handle exception or invalid input
+        print(f"An error occurred: {e}")
+
+    return render_template('airlinestaffhome.html', flights=flights)
 
 # Customer My Flights Page
 @app.route('/customerflights')
@@ -224,6 +263,51 @@ def customerflights():
 @app.route('/customersearch')
 def customersearch():
     return render_template('customersearch.html')
+
+@app.route('/create')
+def create():
+    return render_template('create.html')
+
+@app.route('/create_flight', methods=['POST'])
+def create_flight():
+    if request.method == 'POST':
+        # Extract flight details from the form
+        flight_num = request.form.get('flight_num')
+        dep_date = request.form.get('dep_date')
+        dep_time = request.form.get('dep_time')
+        arr_time = request.form.get('arr_time')
+        arr_date = request.form.get('arr_date')
+        base_price = request.form.get('base_price')
+        airplane_id = request.form.get('airplane_id')
+        dep_airport = request.form.get('dep_airport')
+        arr_airport = request.form.get('arr_airport')
+        status = request.form.get('status')
+
+        # Inserting data into the database
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            airline_query = "SELECT airline_name FROM airlinestaff WHERE username = %s"
+            cursor.execute(airline_query, (session["email"]))
+            airline_name = cursor.fetchone()[0]
+
+            insert_query = """
+                INSERT INTO Flight (num, dep_date, dep_time, arr_time, arr_date, base_price, airplane_id, airline_name, dep_airport, arr_airport, status)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """
+            cursor.execute(insert_query, (flight_num, dep_date, dep_time, arr_time, arr_date, base_price, airplane_id, airline_name, dep_airport, arr_airport, status))
+            conn.commit()
+        except Exception as e:
+            conn.rollback()
+            cursor.close()
+            conn.close()
+            return f"An error occurred: {e}", 500
+        finally:
+            cursor.close()
+            conn.close()
+
+    # If the method is not POST, redirect to the airline staff home page
+    return redirect(url_for('airlineStaffhome'))
 
 if __name__ == '__main__':
     app.run(debug=True)
