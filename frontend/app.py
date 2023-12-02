@@ -250,7 +250,7 @@ def airlineStaffhome():
         # Handle exception or invalid input
         print(f"An error occurred: {e}")
 
-    return render_template('airlinestaffhome.html', flights=flights)
+    return render_template('staffhome.html', flights=flights)
 
 # Customer My Flights Page
 @app.route('/customerflights')
