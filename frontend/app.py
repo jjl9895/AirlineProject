@@ -152,24 +152,6 @@ def register_staff(username, first_name, last_name, password, dob, airline, emai
         return False
     return True
 
-def last_year_total():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    query = "SELECT FORMAT(SUM(price), 2) AS total FROM ticket JOIN purchasehistory ON purchasehistory.ticket_id = ticket.id WHERE purchasehistory.customer_email = %s AND purchase_date BETWEEN %s AND %s;"
-    one_year_ago = datetime.now()- timedelta(days=365)
-    cursor.execute(query, (session['email'], one_year_ago.date(), datetime.now().date()))
-    total = cursor.fetchone()
-    cursor.close()
-    conn.close()
-    return total[0]
-
-    
-@app.route('/logout')
-def logout():
-    session.clear()
-    return redirect(url_for('/'))
-
-
 @app.route('/customerregistration', methods=['GET', 'POST'])
 def customerregister():
     show_login_popup = False
@@ -220,6 +202,22 @@ def staffregister():
             message = "This airline is invalid. Please check airline name."
         
     return render_template('staffregistration.html', message = message, show_login_popup = show_login_popup)
+    
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('/'))
+
+def last_year_total():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    query = "SELECT FORMAT(SUM(price), 2) AS total FROM ticket JOIN purchasehistory ON purchasehistory.ticket_id = ticket.id WHERE purchasehistory.customer_email = %s AND purchase_date BETWEEN %s AND %s;"
+    one_year_ago = datetime.now()- timedelta(days=365)
+    cursor.execute(query, (session['email'], one_year_ago.date(), datetime.now().date()))
+    total = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return total[0]
 
 # Customer Home Page
 @app.route('/customerhome')
@@ -264,9 +262,20 @@ def customerflights():
 def customersearch():
     return render_template('customersearch.html')
 
-@app.route('/create')
+@app.route('/create', methods=['GET','POST'])
 def create():
-    return render_template('create.html')
+    create_type = "flight"
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute ("SELECT id FROM airplane")
+    airplane_ids = cursor.fetchall()
+    cursor.execute ("SELECT code FROM airport")
+    airports = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    if request.method == 'POST':
+        create_type = request.form.get('create_type')
+    return render_template('create.html', create_type=create_type, airplane_ids=airplane_ids, airports=airports)
 
 @app.route('/create_flight', methods=['POST'])
 def create_flight():
@@ -287,8 +296,8 @@ def create_flight():
         try:
             conn = get_db_connection()
             cursor = conn.cursor()
-            airline_query = "SELECT airline_name FROM airlinestaff WHERE username = %s"
-            cursor.execute(airline_query, (session["email"]))
+            query = "SELECT airline_name FROM airlinestaff WHERE username = %s"
+            cursor.execute(query, (session["email"], ))
             airline_name = cursor.fetchone()[0]
 
             insert_query = """
@@ -308,6 +317,117 @@ def create_flight():
 
     # If the method is not POST, redirect to the airline staff home page
     return redirect(url_for('airlineStaffhome'))
+
+def calc_age(date_str):
+    date= datetime.strptime(date_str, '%Y-%m-%d')
+    age = datetime.now() - date
+    years = (age.days)/365
+    return years
+
+@app.route('/create_airplane', methods=['POST'])
+def create_airplane():
+    if request.method == 'POST':
+        # Extract flight details from the form
+        airplane_id = request.form.get('airplane_id')
+        num_of_seats = request.form.get('num_of_seats')
+        manufacturer = request.form.get('manufacturer')
+        model_num = request.form.get('model_num')
+        manufacture_date = request.form.get('manufacture_date')
+
+        age = calc_age(manufacture_date)
+        # Inserting data into the database
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            query = "SELECT airline_name FROM airlinestaff WHERE username = %s"
+            cursor.execute(query, (session["email"], ))
+            airline_name = cursor.fetchone()[0]
+
+            
+            insert_query = """
+                INSERT INTO Airplane (id, num_of_seats, manufacturer, model_num, manufacture_date, age, airline_name)
+                VALUES (%s, %s, %s, %s, %s, %s, %s);
+            """
+            cursor.execute(insert_query, (airplane_id, num_of_seats, manufacturer, model_num, manufacture_date, age, airline_name))
+            conn.commit()
+        except Exception as e:
+            conn.rollback()
+            cursor.close()
+            conn.close()
+            return f"An error occurred: {e}", 500
+        finally:
+            cursor.close()
+            conn.close()
+
+    # If the method is not POST, redirect to the airline staff home page
+    return redirect(url_for('create'))
+
+@app.route('/create_airport', methods=['POST'])
+def create_airport():
+    if request.method == 'POST':
+        # Extract flight details from the form
+        code = request.form.get('code')
+        name = request.form.get('name')
+        city = request.form.get('city')
+        country = request.form.get('country')
+        num_of_term = request.form.get('num_of_term')
+        airport_type = request.form.get('type')
+
+        # Inserting data into the database
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+        
+            insert_query = """
+                INSERT INTO Airport (code, name, city, country, num_of_terminals, type)
+                VALUES (%s, %s, %s, %s, %s, %s);
+            """
+            cursor.execute(insert_query, (code, name, city, country, num_of_term, airport_type))
+            conn.commit()
+        except Exception as e:
+            conn.rollback()
+            cursor.close()
+            conn.close()
+            return f"An error occurred: {e}", 500
+        finally:
+            cursor.close()
+            conn.close()
+
+    # If the method is not POST, redirect to the airline staff home page
+    return redirect(url_for('create'))
+
+@app.route('/schedule_maintenance', methods=['POST'])
+def schedule_maintenance():
+    if request.method == 'POST':
+        # Extract flight details from the form
+        start_date = request.form.get('start_date')
+        end_date = request.form.get('end_date')
+        start_time = request.form.get('start_time')
+        end_time = request.form.get('end_time')
+        airplane_id = request.form.get('airplane_id')
+
+        # Inserting data into the database
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            
+            insert_query = """
+                INSERT INTO Maintenance (start_date, start_time, end_date, end_time, airplane_id)
+                VALUES (%s, %s, %s, %s, %s);
+            """
+            cursor.execute(insert_query, (start_date, start_time, end_date, end_time, airplane_id))
+            conn.commit()
+        except Exception as e:
+            conn.rollback()
+            cursor.close()
+            conn.close()
+            return f"An error occurred: {e}", 500
+        finally:
+            cursor.close()
+            conn.close()
+
+    # If the method is not POST, redirect to the airline staff home page
+    return redirect(url_for('create'))
 
 if __name__ == '__main__':
     app.run(debug=True)

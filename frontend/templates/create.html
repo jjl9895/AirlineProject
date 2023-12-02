@@ -6,35 +6,91 @@
 <body>
     <form method="post" action="/create">
         <label for="selectcreation">Add a New:</label>
-        <select id="selectcreation" name="creation">
+        <select id="selectcreation" name="create_type">
             <option value="flight">Flight</option>
             <option value="airplane">Airplane</option>
             <option value="airport">Airport</option>
             <option value="maintenance">Maintenance Period</option>
         </select>
+        <input type="submit" value="Go">
     </form>
 
-    {% if creation == "flight" %}
-        <form method="post" action="/createflight">
+    {% if create_type == "flight" %}
+        <form method="post" action="/create_flight">
             Flight Number: <input type="number" name="flight_num" min="0" max="9999" required><br>
             Departure Date: <input type="date" name="dep_date" required><br>
             Departure Time: <input type="time" name="dep_time" required><br>
             Arrival Date: <input type="date" name="arr_date" required><br>
             Arrival Time: <input type="time" name="arr_time" required><br>
             Base Price: <input type="number" name="base_price" min="0" required><br>
-            Airplane ID: <input type="number" name="airplane_id" required><br>
-            Departure Airport: <input type="text" name="dep_airport" required><br>
-            Arrival Airport: <input type="text" name="arr_airport" required><br>
+            <label for="dynamicDropdown">Airplane ID:</label>
+            <select id="dynamicDropdown" name="airplane_id" required>
+                {% for option in airplane_ids %}
+                <option value="{{ option[0] }}">{{ option[0] }}</option>
+            {% endfor %}
+            </select><br>
+            <label for="dynamicDropdown">Departure Airport:</label>
+            <select id="dynamicDropdown" name="dep_airport" required>
+                {% for option in airports %}
+                <option value="{{ option[0] }}">{{ option[0] }}</option>
+            {% endfor %}
+            </select><br>
+            <label for="dynamicDropdown">Arrival Airport:</label>
+            <select id="dynamicDropdown" name="arr_airport" required>
+                {% for option in airports %}
+                <option value="{{ option[0] }}">{{ option[0] }}</option>
+            {% endfor %}
+            </select><br>
             <label for="selectstatus">Status:</label>
             <select id="selectstatus" name="status">
                 <option value="on time">On Time</option>
                 <option value="delayed">Delayed</option>
                 <option value="canceled">Canceled</option>
-            </select>
-            <input type="submit" value="Register" >
+            </select><br>
+            <input type="submit" value="Create" >
         </form>
     {% endif %}
-
+    {% if create_type == 'airplane' %}
+        <form method="post" action="/create_airplane">
+            Airplane ID: <input type="number" name="airplane_id"  min="0" max="999999" required><br>
+            Number of Seats: <input type="number" name="num_of_seats" min="0" required><br>
+            Manufacturer: <input type="text" name="manufacturer" required><br>
+            Model Number: <input type="number" name="model_num" min="0" required><br>
+            Manufacture Date: <input type="date" name="manufacture_date" required><br>
+            <input type="submit" value="Create">
+        </form>
+    {% endif %}
+    {% if create_type == 'airport' %}
+        <form method="post" action="/create_airport">
+            Airport Code: <input type="text" name="code"  required><br>
+            Airport Name: <input type="text" name="name" required><br>
+            City: <input type="text" name="city" required><br>
+            Country: <input type="text" name="country" required><br>
+            Number of Terminals: <input type="number" name="num_of_term" min="0" required><br>
+            <label for="selecttype">Type:</label>
+            <select id="selecttype" name="type">
+                <option value="International">International</option>
+                <option value="Domestic">Domestic</option>
+                <option value="Both">Both</option>
+            </select><br>
+            <input type="submit" value="Create">
+        </form>
+    {% endif %}
+    {% if create_type == 'maintenance' %}
+        <form method="post" action="/schedule_maintenance">
+            Start Date: <input type="date" name="start_date" required><br>
+            Start Time: <input type="time" name="start_time" required><br>
+            End Date: <input type="date" name="end_date" required><br>
+            End Time: <input type="time" name="end_time" required><br>
+            <label for="dynamicDropdown">Airplane ID:</label>
+            <select id="dynamicDropdown" name="airplane_id" required>
+                {% for option in airplane_ids %}
+                <option value="{{ option[0] }}">{{ option[0] }}</option>
+            {% endfor %}
+            </select><br>
+            <input type="submit" value="Create">
+        </form>
+    {% endif %}
 </body>
 
 </html>
