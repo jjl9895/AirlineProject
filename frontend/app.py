@@ -1,8 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, session
 import mysql.connector
-from datetime import datetime, timedelta
-from dateutil.relativedelta import relativedelta #pip install python-dateutil
-
 
 
 app = Flask(__name__)
