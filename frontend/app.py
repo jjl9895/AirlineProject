@@ -1,9 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash, get_flashed_messages
 import mysql.connector
 from datetime import datetime, timedelta
-from dateutil.relativedelta import relativedelta #pip install python-dateutil
-
-
+from dateutil.relativedelta import relativedelta
 
 app = Flask(__name__)
 app.secret_key = '184nHU'
@@ -39,7 +37,7 @@ def get_db_connection():
 # Login page
 @app.route('/')
 def home():
-    # flights = display_flights()
+    session.clear()
     return render_template('home.html')
 
 def display_flights():
@@ -65,6 +63,8 @@ def customerlogin():
         if user_exists:
             if password_correct:
                 session['email'] = email
+                if 'next' in session:
+                    return redirect(session['next']) # Redirect to the page the user was trying to access
                 return redirect(url_for('customerhome'))  # Redirect to customer home page
             else:
                 message = 'Wrong password. Try again.'
@@ -183,6 +183,8 @@ def customerregister():
         if check_customer_credentials(email, password)[0]:
             show_login_popup = True
         elif register_customer(email, first_name, last_name, password, pass_num, pass_exp, pass_country, dob, building_num, street, apt_num, city, state, zipcode, phone):
+            if 'next' in session:
+                return redirect(session['next'])
             return redirect(url_for('customerlogin')) 
         
     return render_template('customerregistration.html', show_login_popup = show_login_popup)
@@ -234,7 +236,7 @@ def customerhome():
     return render_template('customerhome.html', year_spending=year_spending)
 
 # Airline Staff Home Page
-@app.route('/airlineStaffhome', methods=['GET', 'POST'])
+@app.route('/staffhome', methods=['GET', 'POST'])
 def airlineStaffhome():
     flights = None
     start_date = datetime.now().date()
@@ -305,7 +307,82 @@ def customerflights():
 
     return render_template('customerflights.html', flights=flights)
 
-# Customer Flight Search Page
+@app.route('/purchasetickets/<int:flight_id>', methods=['GET', 'POST'])
+def purchasetickets(flight_id):
+    if 'email' not in session:
+        session['next'] = url_for('purchasetickets', flight_id=flight_id)
+        return redirect(url_for('customerlogin'))
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    query = "SELECT * FROM Flight WHERE num = %s"
+    cursor.execute(query, (flight_id,))
+    flight = cursor.fetchone()
+
+    airplane_id = flight[6]
+    query = "SELECT * FROM Airplane WHERE id = %s"
+    cursor.execute(query, (airplane_id,))
+    airplane = cursor.fetchone()
+    num_seats = airplane[1]
+
+    query = "SELECT COUNT(*) FROM PurchaseHistory as ph JOIN Ticket as t on t.id = ph.ticket_id WHERE t.flight_num = %s"
+    cursor.execute(query, (flight_id,))
+    num_tickets_sold = cursor.fetchone()[0]
+
+    percentage_full = num_tickets_sold / num_seats * 100
+    if percentage_full >= 100:
+        return "This flight is full. Please select another flight."
+    additional_cost = 0
+    if percentage_full >= 80: 
+        additional_cost = 0.25
+    
+    query = "SELECT id, price, flight_num, flight_dep_date, flight_dep_time, airline_name FROM Ticket WHERE flight_num = %s AND customer_email IS NULL"
+    cursor.execute(query, (flight_id,))
+    tickets = cursor.fetchall()
+
+    modified_tickets = []
+    for ticket in tickets:
+        ticket_list = [ticket[0], ticket[1] + ticket[1] * additional_cost, ticket[2], ticket[3], ticket[4], ticket[5]]
+        modified_tickets.append(ticket_list)
+
+    return render_template('purchasetickets.html', flight_id=flight_id, tickets=modified_tickets)
+
+@app.route('/buyticket/<int:ticket_id>', methods=['GET', 'POST'])
+def buyticket(ticket_id):
+    email = session['email']
+    time = datetime.now().time()
+    purchase_date = datetime.now().date()
+    if request.method == 'POST': 
+
+        card_type = request.form.get('card_type')
+        card_number = request.form.get('card_number')
+        first_name = request.form.get('first_name')
+        last_name = request.form.get('last_name')
+        expiration_date = request.form.get('expiration_date')
+        full_name = first_name + " " + last_name
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        query = "UPDATE Ticket SET customer_email = %s WHERE id = %s"
+        cursor.execute(query, (email, ticket_id))
+
+        query = "SELECT date_of_birth FROM Customer WHERE email = %s"
+        cursor.execute(query, (email,))
+        dob = cursor.fetchone()[0]
+
+        query = "INSERT INTO PurchaseHistory (customer_email, purchase_time, card_num, exp_date, purchase_date, first_name, last_name, name_on_card, date_of_birth, card_type, ticket_id) \
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s,%s)"
+        cursor.execute(query, (email, time, card_number, expiration_date, purchase_date, first_name, last_name, full_name, dob, card_type, ticket_id))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return redirect(url_for('customerflights'))
+
+
+    return render_template('buyticket.html', ticket_id=ticket_id)
+
+
+# Flight Search Page
 @app.route('/searchflights', methods=['GET', 'POST'])
 def searchflights():
     flights = None  # Default to no flights
@@ -326,7 +403,6 @@ def searchflights():
         conn.close()
 
     return render_template('searchflights.html', flights=flights)
-
 
 @app.route('/create', methods=['GET','POST'])
 def create():
@@ -507,7 +583,6 @@ def schedule_maintenance():
     # If the method is not POST, redirect to the airline staff home page
     return redirect(url_for('create'))
 
-
 def get_total_revenue():
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -536,8 +611,6 @@ def get_total_revenue():
         conn.close()
 
     return last_month_revenue, last_year_revenue
-
-
 
 def get_frequent_customer():
     conn = get_db_connection()
@@ -579,8 +652,6 @@ def search_customer_flights():
     conn.close()
 
     return render_template('customer_flights_result.html', flights=flights, airline_name = airline_name,customer_email=customer_email)
-
-
 
 @app.route('/staffstats')
 def staff_stats():

@@ -336,7 +336,7 @@ CREATE TABLE `Ticket` (
   `flight_dep_date` date NOT NULL,
   `flight_dep_time` time NOT NULL,
   `airline_name` varchar(225) NOT NULL,
-  `customer_email` varchar(225) NOT NULL
+  `customer_email` varchar(225)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -346,7 +346,12 @@ CREATE TABLE `Ticket` (
 INSERT INTO `Ticket` (`id`, `price`, `flight_num`, `flight_dep_date`, `flight_dep_time`, `airline_name`, `customer_email`) VALUES
 (123, 100, 1234, '2023-11-28', '01:31:00', 'Air Canada', 'jeff@gmail.com'),
 (246, 100, 4842, '2023-11-26', '12:00:00', 'Emirates', 'grace@gmail.com')
-(589, 100, 5676, '2023-12-12', '12:00:00', 'JetBlue', 'danpoker@gmail.com');
+(589, 100, 5676, '2023-12-12', '12:00:00', 'JetBlue', 'danpoker@gmail.com')
+
+INSERT INTO `Ticket` (`id`, `price`, `flight_num`, `flight_dep_date`, `flight_dep_time`, `airline_name`) VALUES
+(577, 100, 5676, '2023-12-12', '12:00:00', 'JetBlue')
+(573, 100, 5676, '2023-12-12', '12:00:00', 'JetBlue')
+(574, 100, 5676, '2023-12-12', '12:00:00', 'JetBlue');
 
 --
 -- Indexes for dumped tables
