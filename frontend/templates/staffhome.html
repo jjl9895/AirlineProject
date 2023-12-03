@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Home Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        .header {
+            background-color: #f1f1f1;
+            padding: 10px;
+            text-align: center;
+        }
+        .nav-bar {
+            overflow: hidden;
+            background-color: #333;
+        }
+        .nav-bar a {
+            float: left;
+            display: block;
+            color: white;
+            text-align: center;
+            padding: 14px 16px;
+            text-decoration: none;
+        }
+        .nav-bar a:hover {
+            background-color: #ddd;
+            color: black;
+        }
+        .content {
+            padding: 20px;
+        }
+        .footer {
+            background-color: #f1f1f1;
+            padding: 10px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>Welcome to Your Airline Staff Home Page</h1>
+    <p>Your one-stop destination for all your needs.</p>
+</div>
+
+<div class="nav-bar">
+    <a href="/staffhome">Home</a>
+    <a href="/create">Create New</a>
+    <a href="/staffstats">View Stats</a>
+    <a href="/logout">Logout</a>
+</div>
+
+<div class="content">
+    
+    <table border="1">
+        <tr>
+            <th>Flight Number</th>
+            <th>Departure Date</th>
+            <th>Departure Time</th>
+            <th>Arrival Time</th>
+            <th>Arrival Date</th>
+            <th>Base Price</th>
+            <th>Airplane ID</th>
+            <th>Airline Name</th>
+            <th>Departure Airport</th>
+            <th>Arrival Airport</th>
+            <th>Status</th>
+            
+        </tr>
+        {% for row in flights %}
+        <tr>
+            {% for item in row %}
+            <td>{{ item }}</td>
+            {% endfor %}
+        </tr>
+        {% endfor %}
+    </table>
+
+    <form method="post" action="/airlineStaffhome">
+        Start Date: <input type="date" name="start_date" required><br>
+        End Date: <input type="date" name="end_date" required><br>
+        <input type="submit" value="Search" >
+    </form>
+
+    <h2> Change Status of a Flight:</h2>
+    <br><form method="post" action="/change_status">
+        <label for="dynamicDropdown">Flight Number:</label>
+        <select id="dynamicDropdown" name="flight_num" required>
+            {% for option in flight_nums %}
+            <option value="{{ option[0] }}">{{ option[0] }}</option>
+        {% endfor %}
+        </select>
+        <label for="selectstatus">Status:</label>
+            <select id="selectstatus" name="status">
+                <option value="on time">On Time</option>
+                <option value="delayed">Delayed</option>
+                <option value="canceled">Canceled</option>
+            </select><br>
+        <input type="submit" value="Change Status" >
+    </form>
+</div>
+
+
+</body>
+</html>
