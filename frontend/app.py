@@ -472,8 +472,12 @@ def get_frequent_customer():
     conn = get_db_connection()
     cursor = conn.cursor()
 
+    query = "SELECT airline_name FROM airlinestaff WHERE username = %s"
+    cursor.execute(query, (session["email"], ))
+    airline_name = cursor.fetchone()[0]
+
     # Adjust this query to find the most frequent flying customer
-    cursor.execute("SELECT customer_email, COUNT(*) FROM Ticket GROUP BY customer_email ORDER BY COUNT(*) DESC LIMIT 1")
+    cursor.execute("SELECT first_name, last_name, COUNT(*) FROM Ticket JOIN Customer ON Ticket.customer_email = Customer.email WHERE airline_name = %s GROUP BY customer_email ORDER BY COUNT(*) DESC LIMIT 1", (airline_name,))
     frequent_customer = cursor.fetchone()
 
     cursor.close()
@@ -503,7 +507,7 @@ def search_customer_flights():
     cursor.close()
     conn.close()
 
-    return render_template('customer_flights_result.html', flights=flights, airline_name = airline_name,customer_email=customer_email,airline_name=airline_name)
+    return render_template('customer_flights_result.html', flights=flights, airline_name = airline_name,customer_email=customer_email)
 
 
 
@@ -512,15 +516,35 @@ def staff_stats():
     last_month_revenue, last_year_revenue = get_total_revenue()
     frequent_customer = get_frequent_customer()
 
+
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # Adjust this query to fetch flights with ratings and comments
+    query = "SELECT airline_name FROM airlinestaff WHERE username = %s"
+    cursor.execute(query, (session["email"], ))
+    airline_name = cursor.fetchone()[0]
+
+    # Adjusted query to fetch flights with ratings and comments
     cursor.execute("""
-        SELECT Flight.num, Flight.dep_date, Flight.arr_date, Reviews.rating, Reviews.comment 
-        FROM Flight 
-        JOIN Reviews ON Flight.num = Reviews.flight_num
-    """)
+        SELECT 
+            Flight.num AS FlightNumber,
+            AVG(Reviews.rating) OVER (PARTITION BY Flight.num) AS AverageRating,
+            Reviews.customer_email,
+            Reviews.flight_num,
+            Reviews.rating AS IndividualRating,
+            Reviews.comment AS ReviewComment,
+            Reviews.dep_date,
+            Reviews.dep_time,
+            Reviews.airline_name
+        FROM 
+            Flight
+        JOIN 
+            Reviews ON Flight.num = Reviews.flight_num
+        WHERE
+            Flight.airline_name = %s
+        ORDER BY 
+            Flight.num, Reviews.dep_date, Reviews.dep_time
+    """, (airline_name,))
     flights_with_ratings = cursor.fetchall()
 
     cursor.close()
@@ -532,8 +556,6 @@ def staff_stats():
                            last_year_revenue=last_year_revenue, 
                            frequent_customer=frequent_customer, 
                            flights_with_ratings=flights_with_ratings)
-
-
 
 if __name__ == '__main__':
     app.run(debug=True)
