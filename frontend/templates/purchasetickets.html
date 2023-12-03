@@ -19,7 +19,7 @@
         {% for item in row %}
         <td>{{ item }}</td>
         {% endfor %}
-        <td><a href= "{{ url_for('purchasetickets', flight_id=row[0] ) }}">Buy Ticket</a></td>
+        <td><a href= "{{ url_for('buyticket', ticket_id=row[0] ) }}">Buy Ticket</a></td>
     </tr>
     {% endfor %}
 
