@@ -1,0 +1,26 @@
+<html>
+<head>
+    <title>Purchase Tickets</title> 
+</head>
+
+<h2>Tickets</h2>
+<table border="1">
+    <tr>
+        <th>Ticket id</th>
+        <th>Price</th>
+        <th>Flight Number</th>
+        <th>Departure Date</th>
+        <th>Departure Time</th>
+        <th>Arline Name</th>
+        <th>Buy Ticket</th>
+    </tr>
+    {% for row in tickets %}
+    <tr>
+        {% for item in row %}
+        <td>{{ item }}</td>
+        {% endfor %}
+        <td><a href= "{{ url_for('purchasetickets', flight_id=row[0] ) }}">Buy Ticket</a></td>
+    </tr>
+    {% endfor %}
+
+</html>

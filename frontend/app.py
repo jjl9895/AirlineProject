@@ -37,7 +37,7 @@ def get_db_connection():
 # Login page
 @app.route('/')
 def home():
-    # flights = display_flights()
+    session.clear()
     return render_template('home.html')
 
 def display_flights():
@@ -307,10 +307,10 @@ def customerflights():
 
     return render_template('customerflights.html', flights=flights)
 
-@app.route('/purchasetickets', methods=['GET', 'POST'])
+@app.route('/purchasetickets/<int:flight_id>', methods=['GET', 'POST'])
 def purchasetickets(flight_id):
     if 'email' not in session:
-        session['next'] = redirect(url_for('purchasetickets', flight_id = flight_id))
+        session['next'] = url_for('purchasetickets', flight_id=flight_id)
         return redirect(url_for('customerlogin'))
     
     conn = get_db_connection()
@@ -336,13 +336,51 @@ def purchasetickets(flight_id):
     if percentage_full >= 80: 
         additional_cost = 0.25
     
-    query = "SELECT * FROM Ticket WHERE flight_num = %s"
+    query = "SELECT id, price, flight_num, flight_dep_date, flight_dep_time, airline_name FROM Ticket WHERE flight_num = %s AND customer_email IS NULL"
     cursor.execute(query, (flight_id,))
     tickets = cursor.fetchall()
 
+    modified_tickets = []
+    for ticket in tickets:
+        ticket_list = [ticket[0], ticket[1] + ticket[1] * additional_cost, ticket[2], ticket[3], ticket[4], ticket[5]]
+        modified_tickets.append(ticket_list)
+
+    return render_template('purchasetickets.html', flight_id=flight_id, tickets=modified_tickets)
+
+@app.route('/buyticket/<int:ticket_id>', methods=['GET', 'POST'])
+def buyticket(ticket_id):
+    email = session['email']
+    time = datetime.now().time()
+    purchase_date = datetime.now().date()
+    if request.method == 'POST': 
+
+        card_type = request.form.get('card_type')
+        card_number = request.form.get('card_number')
+        first_name = request.form.get('first_name')
+        last_name = request.form.get('last_name')
+        expiration_date = request.form.get('expiration_date')
+        full_name = first_name + " " + last_name
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        query = "UPDATE Ticket SET customer_email = %s WHERE id = %s"
+        cursor.execute(query, (email, ticket_id))
+
+        query = "SELECT date_of_birth FROM Customer WHERE email = %s"
+        cursor.execute(query, (email,))
+        dob = cursor.fetchone()[0]
+
+        query = "INSERT INTO PurchaseHistory (customer_email, purchase_time, card_num, exp_date, purchase_date, first_name, last_name, name_on_card, date_of_birth, card_type, ticket_id) \
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s,%s)"
+        cursor.execute(query, (email, time, card_number, expiration_date, purchase_date, first_name, last_name, full_name, dob, card_type, ticket_id))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return redirect(url_for('customerflights'))
 
 
-    return render_template('purchasetickets.html')
+    return render_template('buyticket.html', ticket_id=ticket_id)
+
 
 # Flight Search Page
 @app.route('/searchflights', methods=['GET', 'POST'])
@@ -365,7 +403,6 @@ def searchflights():
         conn.close()
 
     return render_template('searchflights.html', flights=flights)
-
 
 @app.route('/create', methods=['GET','POST'])
 def create():
@@ -534,7 +571,6 @@ def schedule_maintenance():
     # If the method is not POST, redirect to the airline staff home page
     return redirect(url_for('create'))
 
-
 def get_total_revenue():
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -563,8 +599,6 @@ def get_total_revenue():
         conn.close()
 
     return last_month_revenue, last_year_revenue
-
-
 
 def get_frequent_customer():
     conn = get_db_connection()
@@ -606,8 +640,6 @@ def search_customer_flights():
     conn.close()
 
     return render_template('customer_flights_result.html', flights=flights, airline_name = airline_name,customer_email=customer_email)
-
-
 
 @app.route('/staffstats')
 def staff_stats():

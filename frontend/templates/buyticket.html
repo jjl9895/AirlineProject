@@ -1,0 +1,21 @@
+<html>
+<head>
+    <title>Buy a Ticket</title>
+</head>
+
+<body>
+    <h1>Buy Ticket</h1>
+    <h2> Ticket Id: {{ ticket_id }} </h2>
+    <form method="post" action="/customerregistration">
+        Card Type: <input type="text" name="card_type" required><br>
+        Card Number: <input type="int" name="card_number" min="0" max="9999999999999999"required><br>
+        First Name: <input type="text" name="first_name" required><br>
+        Last Name: <input type="text" name="last_name" required><br>
+        Expiration Date: <input type="date" name="expiration_date" required><br>
+        Security Code: <input type="int" name="security_code" min="0" max="999" required><br>
+        <input type="submit" value="Purchase" >
+    </form>
+
+</body>
+
+</html>
