@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, flash, get_flashed_messages
 import mysql.connector
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta #pip install python-dateutil
@@ -323,6 +323,10 @@ def searchflights():
 
 @app.route('/create', methods=['GET','POST'])
 def create():
+    result = "NULL"
+    if(get_flashed_messages()):
+        result = get_flashed_messages()[0]
+        get_flashed_messages().clear()
     create_type = "flight"
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -334,7 +338,7 @@ def create():
     conn.close()
     if request.method == 'POST':
         create_type = request.form.get('create_type')
-    return render_template('create.html', create_type=create_type, airplane_ids=airplane_ids, airports=airports)
+    return render_template('create.html', create_type=create_type, airplane_ids=airplane_ids, airports=airports, result=result)
 
 @app.route('/create_flight', methods=['POST'])
 def create_flight():
@@ -369,7 +373,9 @@ def create_flight():
             conn.rollback()
             cursor.close()
             conn.close()
-            return f"An error occurred: {e}", 500
+            flash("Invalid data, flight not added")
+        else:
+            flash("Flight successfully added.")
         finally:
             cursor.close()
             conn.close()
@@ -413,7 +419,9 @@ def create_airplane():
             conn.rollback()
             cursor.close()
             conn.close()
-            return f"An error occurred: {e}", 500
+            flash("Invalid data, airplane not registered")
+        else:
+            flash("Airplane successfully registered.")
         finally:
             cursor.close()
             conn.close()
@@ -447,7 +455,9 @@ def create_airport():
             conn.rollback()
             cursor.close()
             conn.close()
-            return f"An error occurred: {e}", 500
+            flash("Invalid data, airport not registered.")
+        else:
+            flash("Airport successfully registered.")
         finally:
             cursor.close()
             conn.close()
@@ -480,7 +490,9 @@ def schedule_maintenance():
             conn.rollback()
             cursor.close()
             conn.close()
-            return f"An error occurred: {e}", 500
+            flash("Invalid data, maintenance not scheduled.")
+        else:
+            flash("Maintenance successfully scheduled.")
         finally:
             cursor.close()
             conn.close()
