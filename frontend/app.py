@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, session
 import mysql.connector
-
+from datetime import datetime, timedelta
+from dateutil.relativedelta import relativedelta
 
 app = Flask(__name__)
 app.secret_key = '184nHU'
@@ -26,7 +27,7 @@ nikhilconfig = {
     'database': 'airportproject'
 }  
 # Database configuration
-db_config = nikhilconfig
+db_config = jeffconfig
 
 # Establishing a database connection
 def get_db_connection():
@@ -62,6 +63,8 @@ def customerlogin():
         if user_exists:
             if password_correct:
                 session['email'] = email
+                if 'next' in session:
+                    return redirect(session['next']) # Redirect to the page the user was trying to access
                 return redirect(url_for('customerhome'))  # Redirect to customer home page
             else:
                 message = 'Wrong password. Try again.'
@@ -180,6 +183,8 @@ def customerregister():
         if check_customer_credentials(email, password)[0]:
             show_login_popup = True
         elif register_customer(email, first_name, last_name, password, pass_num, pass_exp, pass_country, dob, building_num, street, apt_num, city, state, zipcode, phone):
+            if 'next' in session:
+                return redirect(session['next'])
             return redirect(url_for('customerlogin')) 
         
     return render_template('customerregistration.html', show_login_popup = show_login_popup)
@@ -231,7 +236,7 @@ def customerhome():
     return render_template('customerhome.html', year_spending=year_spending)
 
 # Airline Staff Home Page
-@app.route('/airlineStaffhome', methods=['GET', 'POST'])
+@app.route('/staffhome', methods=['GET', 'POST'])
 def airlineStaffhome():
     flights = None
     start_date = datetime.now().date()
@@ -302,13 +307,44 @@ def customerflights():
 
     return render_template('customerflights.html', flights=flights)
 
-@app.route('/purchaseflights', methods=['GET', 'POST'])
-def purchaseflights():
+@app.route('/purchasetickets', methods=['GET', 'POST'])
+def purchasetickets(flight_id):
+    if 'email' not in session:
+        session['next'] = redirect(url_for('purchasetickets', flight_id = flight_id))
+        return redirect(url_for('customerlogin'))
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    query = "SELECT * FROM Flight WHERE num = %s"
+    cursor.execute(query, (flight_id,))
+    flight = cursor.fetchone()
+
+    airplane_id = flight[6]
+    query = "SELECT * FROM Airplane WHERE id = %s"
+    cursor.execute(query, (airplane_id,))
+    airplane = cursor.fetchone()
+    num_seats = airplane[1]
+
+    query = "SELECT COUNT(*) FROM PurchaseHistory as ph JOIN Ticket as t on t.id = ph.ticket_id WHERE t.flight_num = %s"
+    cursor.execute(query, (flight_id,))
+    num_tickets_sold = cursor.fetchone()[0]
+
+    percentage_full = num_tickets_sold / num_seats * 100
+    if percentage_full >= 100:
+        return "This flight is full. Please select another flight."
+    additional_cost = 0
+    if percentage_full >= 80: 
+        additional_cost = 0.25
+    
+    query = "SELECT * FROM Ticket WHERE flight_num = %s"
+    cursor.execute(query, (flight_id,))
+    tickets = cursor.fetchall()
 
 
-    return render_template('purchaseflights.html')
 
-# Customer Flight Search Page
+    return render_template('purchasetickets.html')
+
+# Flight Search Page
 @app.route('/searchflights', methods=['GET', 'POST'])
 def searchflights():
     flights = None  # Default to no flights
@@ -535,7 +571,7 @@ def get_frequent_customer():
     cursor = conn.cursor()
 
     query = "SELECT airline_name FROM airlinestaff WHERE username = %s"
-    cursor.execute(query, (session["email"], ))
+    cursor.execute(query, (session["username"], ))
     airline_name = cursor.fetchone()[0]
 
     # Adjust this query to find the most frequent flying customer
@@ -583,7 +619,7 @@ def staff_stats():
     cursor = conn.cursor()
 
     query = "SELECT airline_name FROM airlinestaff WHERE username = %s"
-    cursor.execute(query, (session["email"], ))
+    cursor.execute(query, (session["username"], ))
     airline_name = cursor.fetchone()[0]
 
     # Adjusted query to fetch flights with ratings and comments

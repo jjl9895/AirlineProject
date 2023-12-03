@@ -24,13 +24,14 @@
                 <th>Arrival Date</th>
                 <th>Arrival Time</th>
                 <th>Flight Status</th>
+                <th>Purchase a Ticket</th>
             </tr>
             {% for row in flights %}
             <tr>
                 {% for item in row %}
                 <td>{{ item }}</td>
                 {% endfor %}
-                <a href="/purchaseflights">Purchase This Flight</a>
+                <td><a href="/purchasetickets", flight_id = row[0]>Purchase Ticket</a></td>
             </tr>
             {% endfor %}
         </table>
