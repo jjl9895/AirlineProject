@@ -29,7 +29,7 @@ nikhilconfig = {
     'database': 'airportproject'
 }  
 # Database configuration
-db_config = nikhilconfig
+db_config = graceconfig
 
 # Establishing a database connection
 def get_db_connection():
@@ -367,7 +367,7 @@ def create_flight():
             conn = get_db_connection()
             cursor = conn.cursor()
             query = "SELECT airline_name FROM airlinestaff WHERE username = %s"
-            cursor.execute(query, (session["email"], ))
+            cursor.execute(query, (session["username"], ))
             airline_name = cursor.fetchone()[0]
 
             insert_query = """
@@ -412,7 +412,7 @@ def create_airplane():
             conn = get_db_connection()
             cursor = conn.cursor()
             query = "SELECT airline_name FROM airlinestaff WHERE username = %s"
-            cursor.execute(query, (session["email"], ))
+            cursor.execute(query, (session["username"], ))
             airline_name = cursor.fetchone()[0]
 
             
@@ -544,7 +544,7 @@ def get_frequent_customer():
     cursor = conn.cursor()
 
     query = "SELECT airline_name FROM airlinestaff WHERE username = %s"
-    cursor.execute(query, (session["email"], ))
+    cursor.execute(query, (session["username"], ))
     airline_name = cursor.fetchone()[0]
 
     # Adjust this query to find the most frequent flying customer
@@ -558,13 +558,13 @@ def get_frequent_customer():
 @app.route('/search_customer_flights', methods=['POST'])
 def search_customer_flights():
     customer_email = request.form.get('customer_email')
-    airline_staff_email = session.get('email')  # Example: Fetching from session
+    airline_staff_email = session.get('username')  # Example: Fetching from session
 
     conn = get_db_connection()
     cursor = conn.cursor()
 
     query = "SELECT airline_name FROM airlinestaff WHERE username = %s"
-    cursor.execute(query, (session["email"], ))
+    cursor.execute(query, (session["username"], ))
     airline_name = cursor.fetchone()[0]
 
     # Now, get the flights for the customer on the same airline
@@ -592,7 +592,7 @@ def staff_stats():
     cursor = conn.cursor()
 
     query = "SELECT airline_name FROM airlinestaff WHERE username = %s"
-    cursor.execute(query, (session["email"], ))
+    cursor.execute(query, (session["username"], ))
     airline_name = cursor.fetchone()[0]
 
     # Adjusted query to fetch flights with ratings and comments
