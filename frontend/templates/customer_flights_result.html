@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Head content -->
+</head>
+<body>
+    <h2>Customer Flights on {{ airline_name }}</h2>
+    <table>
+        <!-- Table headers -->
+        <tr>
+            <th>Flight Number</th>
+            <th>Departure Date</th>
+            <!-- Other relevant flight details -->
+        </tr>
+        <!-- Table data -->
+        {% for flight in flights %}
+        <tr>
+            <td>{{ flight.num }}</td>
+            <td>{{ flight.dep_date }}</td>
+            <!-- Other flight details -->
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>

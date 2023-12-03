@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Staff Statistics</title>
+    <style>
+        /* Add your CSS styling here */
+    </style>
+</head>
+<body>
+    <h1>Airline Staff Statistics</h1>
+
+    <!-- Total Revenue -->
+    <section>
+        <h2>Total Revenue</h2>
+        <p>Last Month: {{ last_month_revenue }}</p>
+        <p>Last Year: {{ last_year_revenue }}</p>
+    </section>
+
+    <!-- Most Frequent Flying Customer -->
+    <section>
+        <h2>Most Frequent Flying Customer</h2>
+        <p>Name: {{ frequent_customer.name }}</p>
+        <!-- Add more customer details if needed -->
+    </section>
+
+    <!-- Customer Search -->
+    <section>
+        <h2>Search for Customer</h2>
+        <form action="/search_customer_flights" method="post">
+            <input type="text" name="customer_email" placeholder="Enter Customer Email">
+            <input type="submit" value="Search">
+        </form>
+    </section>
+
+    <!-- Flights with Ratings and Comments -->
+    <section>
+        <h2>Flights with Ratings and Comments</h2>
+        <table>
+            <tr>
+                <th>Flight Number</th>
+                <th>Rating</th>
+                <th>Comment</th>
+            </tr>
+            {% for flight in flights_with_ratings %}
+            <tr>
+                <td>{{ flight.flight_num }}</td>
+                <td>{{ flight.rating }}</td>
+                <td>{{ flight.comment }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </section>
+
+</body>
+</html>

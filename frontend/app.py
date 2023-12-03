@@ -20,8 +20,15 @@ graceconfig = {
     'password': '12345',    
     'database': 'projectairport'
 }  
+
+nikhilconfig = { 
+    'host': 'localhost', 
+    'user': 'nikhilreddy',         
+    'password': '123456',    
+    'database': 'airportproject'
+}  
 # Database configuration
-db_config = graceconfig
+db_config = nikhilconfig
 
 # Establishing a database connection
 def get_db_connection():
@@ -428,6 +435,105 @@ def schedule_maintenance():
 
     # If the method is not POST, redirect to the airline staff home page
     return redirect(url_for('create'))
+
+
+def get_total_revenue():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    last_month_revenue = 0
+    last_year_revenue = 0
+
+    try:
+        # Query for last month's revenue
+        cursor.execute("SELECT SUM(Ticket.price) FROM PurchaseHistory JOIN Ticket ON PurchaseHistory.ticket_id = Ticket.id WHERE PurchaseHistory.purchase_date >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH)")
+        result = cursor.fetchone()
+        last_month_revenue = result[0] if result else 0
+
+        # Clearing the result of the first query
+        cursor.fetchall()
+
+        # Query for last year's revenue
+        cursor.execute("SELECT SUM(Ticket.price) FROM PurchaseHistory JOIN Ticket ON PurchaseHistory.ticket_id = Ticket.id WHERE PurchaseHistory.purchase_date >= DATE_SUB(CURDATE(), INTERVAL 1 YEAR)")
+        result = cursor.fetchone()
+        last_year_revenue = result[0] if result else 0
+
+    except mysql.connector.Error as err:
+        print("Error occurred: {}".format(err))
+    finally:
+        cursor.close()
+        conn.close()
+
+    return last_month_revenue, last_year_revenue
+
+
+
+def get_frequent_customer():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Adjust this query to find the most frequent flying customer
+    cursor.execute("SELECT customer_email, COUNT(*) FROM Ticket GROUP BY customer_email ORDER BY COUNT(*) DESC LIMIT 1")
+    frequent_customer = cursor.fetchone()
+
+    cursor.close()
+    conn.close()
+    return frequent_customer
+
+@app.route('/search_customer_flights', methods=['POST'])
+def search_customer_flights():
+    customer_email = request.form.get('customer_email')
+    airline_staff_email = session.get('email')  # Example: Fetching from session
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    query = "SELECT airline_name FROM airlinestaff WHERE username = %s"
+    cursor.execute(query, (session["email"], ))
+    airline_name = cursor.fetchone()[0]
+
+    # Now, get the flights for the customer on the same airline
+    cursor.execute("""
+        SELECT Flight.* FROM Flight
+        JOIN Ticket ON Flight.num = Ticket.flight_num
+        WHERE Ticket.customer_email = %s AND Flight.airline_name = %s
+    """, (customer_email, airline_name))
+    flights = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    return render_template('customer_flights_result.html', flights=flights, airline_name = airline_name,customer_email=customer_email,airline_name=airline_name)
+
+
+
+@app.route('/staffstats')
+def staff_stats():
+    last_month_revenue, last_year_revenue = get_total_revenue()
+    frequent_customer = get_frequent_customer()
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Adjust this query to fetch flights with ratings and comments
+    cursor.execute("""
+        SELECT Flight.num, Flight.dep_date, Flight.arr_date, Reviews.rating, Reviews.comment 
+        FROM Flight 
+        JOIN Reviews ON Flight.num = Reviews.flight_num
+    """)
+    flights_with_ratings = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    # Render the staffstats.html template with the gathered data
+    return render_template('staffstats.html', 
+                           last_month_revenue=last_month_revenue, 
+                           last_year_revenue=last_year_revenue, 
+                           frequent_customer=frequent_customer, 
+                           flights_with_ratings=flights_with_ratings)
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)
