@@ -193,6 +193,12 @@ def customerflights():
 
     return render_template('customerflights.html', flights=flights)
 
+@app.route('/purchaseflights', methods=['GET', 'POST'])
+def purchaseflights():
+
+
+    return render_template('purchaseflights.html')
+
 # Customer Flight Search Page
 @app.route('/searchflights', methods=['GET', 'POST'])
 def searchflights():
