@@ -663,9 +663,9 @@ def search_customer_flights():
 
     # Now, get the flights for the customer on the same airline
     cursor.execute("""
-        SELECT Flight.* FROM Flight
+        SELECT * FROM Flight
         JOIN Ticket ON Flight.num = Ticket.flight_num
-        WHERE Ticket.customer_email = %s AND Flight.airline_name = %s
+        WHERE Ticket.customer_email = %s AND Flight.airline_name = %s  AND Flight.dep_date = Ticket.flight_dep_date AND Flight.dep_time = Ticket.flight_dep_time
     """, (customer_email, airline_name,))
     flights = cursor.fetchall()
 
