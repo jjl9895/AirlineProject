@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, flash, get_flashed_messages
 import mysql.connector
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
@@ -86,8 +86,15 @@ def stafflogin():
         user_exists, password_correct = check_airlineStaff_credentials(username, password)
         if user_exists:
             if password_correct:
+                conn = get_db_connection()
+                cursor = conn.cursor()
                 session['username'] = username
-                return redirect(url_for('airlineStaffhome'))  # Redirect to customer home page
+                query = "SELECT airline_name FROM airlinestaff WHERE username = %s"
+                cursor.execute(query, (session['username'], ))
+                session['airline'] = cursor.fetchone()[0]
+                cursor.close()
+                conn.close()
+                return redirect(url_for('staffhome'))  # Redirect to staff home page
             else:
                 message = 'Wrong password. Try again.'
         else:
@@ -237,7 +244,11 @@ def customerhome():
 
 # Airline Staff Home Page
 @app.route('/staffhome', methods=['GET', 'POST'])
-def airlineStaffhome():
+def staffhome():
+    result = "NULL"
+    if(get_flashed_messages()):
+        result = get_flashed_messages()[0]
+        get_flashed_messages().clear()
     flights = None
     start_date = datetime.now().date()
     end_date = start_date + relativedelta(days=30)
@@ -264,7 +275,7 @@ def airlineStaffhome():
         # Handle exception or invalid input
         print(f"An error occurred: {e}")
 
-    return render_template('staffhome.html', flights=flights, flight_nums=flight_nums)
+    return render_template('staffhome.html', flights=flights, flight_nums=flight_nums, result=result)
 
 @app.route('/change_status', methods=['POST'])
 def changestatus():
@@ -286,7 +297,7 @@ def changestatus():
         finally:
             cursor.close()
             conn.close()
-    return redirect(url_for('airlineStaffhome'))
+    return redirect(url_for('staffhome'))
 
 # Customer My Flights Page
 @app.route('/customerflights')
@@ -406,10 +417,14 @@ def searchflights():
 
 @app.route('/create', methods=['GET','POST'])
 def create():
+    result = "NULL"
+    if(get_flashed_messages()):
+        result = get_flashed_messages()[0]
+        get_flashed_messages().clear()
     create_type = "flight"
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute ("SELECT id FROM airplane")
+    cursor.execute ("SELECT id FROM airplane WHERE airline_name = %s", (session['airline'], ))
     airplane_ids = cursor.fetchall()
     cursor.execute ("SELECT code FROM airport")
     airports = cursor.fetchall()
@@ -417,7 +432,7 @@ def create():
     conn.close()
     if request.method == 'POST':
         create_type = request.form.get('create_type')
-    return render_template('create.html', create_type=create_type, airplane_ids=airplane_ids, airports=airports)
+    return render_template('create.html', create_type=create_type, airplane_ids=airplane_ids, airports=airports, result=result)
 
 @app.route('/create_flight', methods=['POST'])
 def create_flight():
@@ -433,32 +448,39 @@ def create_flight():
         dep_airport = request.form.get('dep_airport')
         arr_airport = request.form.get('arr_airport')
         status = request.form.get('status')
-
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT num, dep_date, dep_time FROM Flight;")
+        nums = cursor.fetchall()
         # Inserting data into the database
         try:
-            conn = get_db_connection()
-            cursor = conn.cursor()
-            query = "SELECT airline_name FROM airlinestaff WHERE username = %s"
-            cursor.execute(query, (session["email"], ))
-            airline_name = cursor.fetchone()[0]
-
-            insert_query = """
-                INSERT INTO Flight (num, dep_date, dep_time, arr_time, arr_date, base_price, airplane_id, airline_name, dep_airport, arr_airport, status)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """
-            cursor.execute(insert_query, (flight_num, dep_date, dep_time, arr_time, arr_date, base_price, airplane_id, airline_name, dep_airport, arr_airport, status))
-            conn.commit()
+            if(dep_date<arr_date or (dep_date==arr_date and dep_time<arr_time)):
+                if(dep_airport != arr_airport):
+                    insert_query = """
+                        INSERT INTO Flight (num, dep_date, dep_time, arr_time, arr_date, base_price, airplane_id, airline_name, dep_airport, arr_airport, status)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """
+                    cursor.execute(insert_query, (flight_num, dep_date, dep_time, arr_time, arr_date, base_price, airplane_id, session["airline"], dep_airport, arr_airport, status))
+                    conn.commit()
+                else:
+                    raise Exception("Arrival and departure airports must be different.")
+            else:
+                raise Exception("Departure must be before arrival.")
         except Exception as e:
             conn.rollback()
             cursor.close()
             conn.close()
-            return f"An error occurred: {e}", 500
+            flash("Invalid data, flight not added. "+str(e))
+            return redirect(url_for('create'))
+        else:
+            flash("Flight successfully added.")
         finally:
             cursor.close()
             conn.close()
 
     # If the method is not POST, redirect to the airline staff home page
-    return redirect(url_for('airlineStaffhome'))
+    return redirect(url_for('staffhome'))
 
 def calc_age(date_str):
     date= datetime.strptime(date_str, '%Y-%m-%d')
@@ -475,28 +497,30 @@ def create_airplane():
         manufacturer = request.form.get('manufacturer')
         model_num = request.form.get('model_num')
         manufacture_date = request.form.get('manufacture_date')
-
         age = calc_age(manufacture_date)
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT id FROM Airplane;")
+        ids = cursor.fetchall()
         # Inserting data into the database
         try:
-            conn = get_db_connection()
-            cursor = conn.cursor()
-            query = "SELECT airline_name FROM airlinestaff WHERE username = %s"
-            cursor.execute(query, (session["email"], ))
-            airline_name = cursor.fetchone()[0]
-
-            
-            insert_query = """
-                INSERT INTO Airplane (id, num_of_seats, manufacturer, model_num, manufacture_date, age, airline_name)
-                VALUES (%s, %s, %s, %s, %s, %s, %s);
-            """
-            cursor.execute(insert_query, (airplane_id, num_of_seats, manufacturer, model_num, manufacture_date, age, airline_name))
-            conn.commit()
+            if((int(airplane_id),) not in ids):
+                insert_query = """
+                    INSERT INTO Airplane (id, num_of_seats, manufacturer, model_num, manufacture_date, age, airline_name)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s);
+                """
+                cursor.execute(insert_query, (airplane_id, num_of_seats, manufacturer, model_num, manufacture_date, age, session['airline']))
+                conn.commit()
+            else:
+                raise Exception("Airplane ID must be unique.")
         except Exception as e:
             conn.rollback()
             cursor.close()
             conn.close()
-            return f"An error occurred: {e}", 500
+            flash("Invalid data, airplane not registered. "+str(e))
+        else:
+            flash("Airplane successfully registered.")
         finally:
             cursor.close()
             conn.close()
@@ -515,22 +539,31 @@ def create_airport():
         num_of_term = request.form.get('num_of_term')
         airport_type = request.form.get('type')
 
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT code FROM Airport;")
+        codes = cursor.fetchall()
         # Inserting data into the database
         try:
-            conn = get_db_connection()
-            cursor = conn.cursor()
-        
-            insert_query = """
-                INSERT INTO Airport (code, name, city, country, num_of_terminals, type)
-                VALUES (%s, %s, %s, %s, %s, %s);
-            """
-            cursor.execute(insert_query, (code, name, city, country, num_of_term, airport_type))
-            conn.commit()
+            if((code,) not in codes):
+                if(len(code) == 3 and code.isalpha()):
+                    insert_query = """
+                        INSERT INTO Airport (code, name, city, country, num_of_terminals, type)
+                        VALUES (%s, %s, %s, %s, %s, %s);
+                    """
+                    cursor.execute(insert_query, (code, name, city, country, num_of_term, airport_type))
+                    conn.commit()
+                else:
+                    raise Exception("Invalid airport code.")
+            else:
+                raise Exception("Code must be unique.")
         except Exception as e:
             conn.rollback()
             cursor.close()
             conn.close()
-            return f"An error occurred: {e}", 500
+            flash("Invalid data, airport not registered. "+str(e))
+        else:
+            flash("Airport successfully registered.")
         finally:
             cursor.close()
             conn.close()
@@ -563,7 +596,9 @@ def schedule_maintenance():
             conn.rollback()
             cursor.close()
             conn.close()
-            return f"An error occurred: {e}", 500
+            flash("Invalid data, maintenance not scheduled.")
+        else:
+            flash("Maintenance successfully scheduled.")
         finally:
             cursor.close()
             conn.close()
@@ -580,7 +615,7 @@ def get_total_revenue():
 
     try:
         # Query for last month's revenue
-        cursor.execute("SELECT SUM(Ticket.price) FROM PurchaseHistory JOIN Ticket ON PurchaseHistory.ticket_id = Ticket.id WHERE PurchaseHistory.purchase_date >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH)")
+        cursor.execute("SELECT SUM(Ticket.price) FROM PurchaseHistory JOIN Ticket ON PurchaseHistory.ticket_id = Ticket.id WHERE PurchaseHistory.purchase_date >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH) AND Ticket.airline_name = %s", (session['airline'],))
         result = cursor.fetchone()
         last_month_revenue = result[0] if result else 0
 
@@ -588,7 +623,7 @@ def get_total_revenue():
         cursor.fetchall()
 
         # Query for last year's revenue
-        cursor.execute("SELECT SUM(Ticket.price) FROM PurchaseHistory JOIN Ticket ON PurchaseHistory.ticket_id = Ticket.id WHERE PurchaseHistory.purchase_date >= DATE_SUB(CURDATE(), INTERVAL 1 YEAR)")
+        cursor.execute("SELECT SUM(Ticket.price) FROM PurchaseHistory JOIN Ticket ON PurchaseHistory.ticket_id = Ticket.id WHERE PurchaseHistory.purchase_date >= DATE_SUB(CURDATE(), INTERVAL 1 YEAR) AND Ticket.airline_name = %s", (session['airline'],))
         result = cursor.fetchone()
         last_year_revenue = result[0] if result else 0
 
@@ -604,12 +639,9 @@ def get_frequent_customer():
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    query = "SELECT airline_name FROM airlinestaff WHERE username = %s"
-    cursor.execute(query, (session["username"], ))
-    airline_name = cursor.fetchone()[0]
 
     # Adjust this query to find the most frequent flying customer
-    cursor.execute("SELECT first_name, last_name, COUNT(*) FROM Ticket JOIN Customer ON Ticket.customer_email = Customer.email WHERE airline_name = %s GROUP BY customer_email ORDER BY COUNT(*) DESC LIMIT 1", (airline_name,))
+    cursor.execute("SELECT first_name, last_name, COUNT(*) FROM Ticket JOIN Customer ON Ticket.customer_email = Customer.email WHERE airline_name = %s GROUP BY customer_email ORDER BY COUNT(*) DESC LIMIT 1", (session['airline'],))
     frequent_customer = cursor.fetchone()
 
     cursor.close()
@@ -619,27 +651,24 @@ def get_frequent_customer():
 @app.route('/search_customer_flights', methods=['POST'])
 def search_customer_flights():
     customer_email = request.form.get('customer_email')
-    airline_staff_email = session.get('email')  # Example: Fetching from session
+    airline_staff_email = session.get('username')  # Example: Fetching from session
 
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    query = "SELECT airline_name FROM airlinestaff WHERE username = %s"
-    cursor.execute(query, (session["email"], ))
-    airline_name = cursor.fetchone()[0]
 
     # Now, get the flights for the customer on the same airline
     cursor.execute("""
         SELECT Flight.* FROM Flight
         JOIN Ticket ON Flight.num = Ticket.flight_num
         WHERE Ticket.customer_email = %s AND Flight.airline_name = %s
-    """, (customer_email, airline_name))
+    """, (customer_email, session['airline']))
     flights = cursor.fetchall()
 
     cursor.close()
     conn.close()
 
-    return render_template('customer_flights_result.html', flights=flights, airline_name = airline_name,customer_email=customer_email)
+    return render_template('customer_flights_result.html', flights=flights, airline_name = session['airline'],customer_email=customer_email)
 
 @app.route('/staffstats')
 def staff_stats():
@@ -650,9 +679,6 @@ def staff_stats():
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    query = "SELECT airline_name FROM airlinestaff WHERE username = %s"
-    cursor.execute(query, (session["username"], ))
-    airline_name = cursor.fetchone()[0]
 
     # Adjusted query to fetch flights with ratings and comments
     cursor.execute("""
@@ -674,7 +700,7 @@ def staff_stats():
             Flight.airline_name = %s
         ORDER BY 
             Flight.num, Reviews.dep_date, Reviews.dep_time
-    """, (airline_name,))
+    """, (session['airline'],))
     flights_with_ratings = cursor.fetchall()
 
     cursor.close()

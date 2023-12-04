@@ -79,7 +79,7 @@
         {% endfor %}
     </table>
 
-    <form method="post" action="/airlineStaffhome">
+    <form method="post" action="/staffhome">
         Start Date: <input type="date" name="start_date" required><br>
         End Date: <input type="date" name="end_date" required><br>
         <input type="submit" value="Search" >
@@ -101,6 +101,10 @@
             </select><br>
         <input type="submit" value="Change Status" >
     </form>
+
+    {% if result != "NULL" %}
+        <h4>{{result}}</h4>
+    {% endif %}
 </div>
 
 
