@@ -24,7 +24,7 @@ nikhilconfig = {
     'host': 'localhost', 
     'user': 'nikhilreddy',         
     'password': '123456',    
-    'database': 'airportproject'
+    'database': 'projectairport'
 }  
 # Database configuration
 db_config = nikhilconfig
@@ -656,13 +656,17 @@ def search_customer_flights():
     conn = get_db_connection()
     cursor = conn.cursor()
 
+    query = "SELECT airline_name FROM airlinestaff WHERE username = %s"
+    cursor.execute(query, (session['username'], ))
+    airline_name = cursor.fetchone()[0]
+
 
     # Now, get the flights for the customer on the same airline
     cursor.execute("""
         SELECT Flight.* FROM Flight
         JOIN Ticket ON Flight.num = Ticket.flight_num
         WHERE Ticket.customer_email = %s AND Flight.airline_name = %s
-    """, (customer_email, session['airline']))
+    """, (customer_email, airline_name,))
     flights = cursor.fetchall()
 
     cursor.close()
