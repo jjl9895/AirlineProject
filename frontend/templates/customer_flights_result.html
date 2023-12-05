@@ -15,8 +15,8 @@
         <!-- Table data -->
         {% for flight in flights %}
         <tr>
-            <td>{{ flight.num[0] }}</td>
-            <td>{{ flight.dep_date[1] }}</td>
+            <td>{{ flight[0] }}</td>
+            <td>{{ flight[1] }}</td>
             <!-- Other flight details -->
         </tr>
         {% endfor %}

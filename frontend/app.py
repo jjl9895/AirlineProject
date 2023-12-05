@@ -24,10 +24,10 @@ nikhilconfig = {
     'host': 'localhost', 
     'user': 'nikhilreddy',         
     'password': '123456',    
-    'database': 'airportproject'
+    'database': 'projectairport'
 }  
 # Database configuration
-db_config = graceconfig
+db_config = jeffconfig
 
 # Establishing a database connection
 def get_db_connection():
@@ -230,6 +230,18 @@ def last_year_total():
     cursor = conn.cursor()
     query = "SELECT FORMAT(SUM(price), 2) AS total FROM ticket JOIN purchasehistory ON purchasehistory.ticket_id = ticket.id WHERE purchasehistory.customer_email = %s AND purchase_date BETWEEN %s AND %s;"
     one_year_ago = datetime.now()- timedelta(days=365)
+    cursor.execute(query, (session['email'], one_year_ago.date(), datetime.now().date()))
+    total = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return total[0]
+
+
+def last_6m_total():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    query = "SELECT FORMAT(SUM(price), 2) AS total FROM ticket JOIN purchasehistory ON purchasehistory.ticket_id = ticket.id WHERE purchasehistory.customer_email = %s AND purchase_date BETWEEN %s AND %s;"
+    one_year_ago = datetime.now()- timedelta(days=183)
     cursor.execute(query, (session['email'], one_year_ago.date(), datetime.now().date()))
     total = cursor.fetchone()
     cursor.close()
@@ -685,24 +697,30 @@ def get_frequent_customer():
 @app.route('/search_customer_flights', methods=['POST'])
 def search_customer_flights():
     customer_email = request.form.get('customer_email')
-    airline_staff_email = session.get('username')  # Example: Fetching from session
 
     conn = get_db_connection()
     cursor = conn.cursor()
 
+    query = "SELECT airline_name FROM airlinestaff WHERE username = %s"
+    cursor.execute(query, (session['username'], ))
+    airline_name = cursor.fetchone()[0]
+
 
     # Now, get the flights for the customer on the same airline
     cursor.execute("""
-        SELECT Flight.* FROM Flight
+        SELECT * FROM Flight
         JOIN Ticket ON Flight.num = Ticket.flight_num
         WHERE Ticket.customer_email = %s AND Flight.airline_name = %s
-    """, (customer_email, session['airline']))
+    """, (customer_email, session['airline'],))
     flights = cursor.fetchall()
 
     cursor.close()
     conn.close()
 
-    return render_template('customer_flights_result.html', flights=flights, airline_name = session['airline'],customer_email=customer_email)
+    print(session['airline'])
+    print(customer_email)
+
+    return render_template('customer_flights_result.html', flights=flights, airline_name = session['airline'], customer_email=customer_email)
 
 @app.route('/staffstats')
 def staff_stats():
