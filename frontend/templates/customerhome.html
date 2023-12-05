@@ -41,7 +41,7 @@
         .right-element {
             position: absolute;
             right: 0;
-            top: 45%;
+            top: 50%;
             transform: translateY(-50%);
             background-color: white;
             padding: 10px;
@@ -74,7 +74,25 @@
     <h1>${{year_spending}}</h1>
 </div>
 <div class="right-element">
-    <h2>Your spending summary for the last 6 months:</h2>
+    <table border="1">
+        <tr>
+            <th>Month</th>
+            <th>Amount Spent</th>
+        </tr>
+        {% for row in spending %}
+        <tr>
+            {% for item in row %}
+            <td>{{ item }}</td>
+            {% endfor %}
+        </tr>
+        {% endfor %}
+    </table>
+
+    <form method="post" action="/customerhome">
+        Start Date: <input type="date" name="start_date" required><br>
+        End Date: <input type="date" name="end_date" required><br>
+        <input type="submit" value="Search" >
+    </form>
 </div>
 
 </body>

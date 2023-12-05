@@ -240,7 +240,36 @@ def last_year_total():
 @app.route('/customerhome')
 def customerhome():
     year_spending = last_year_total()
-    return render_template('customerhome.html', year_spending=year_spending)
+    end_date = datetime.now().date()
+    start_date = end_date - relativedelta(months=6)
+    if request.method == "POST":
+        if 'start_date' in request.form and 'end_date' in request.form:
+            start_date = request.form.get('start_date')
+            end_date = request.form.get('end_date')
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        query = """SELECT
+        DATE_FORMAT(purchasehistory.purchase_date, '%Y-%m') AS month,
+        SUM(ticket.price) AS total_spending
+        FROM
+            ticket JOIN purchasehistory ON purchasehistory.ticket_id = ticket.id
+        WHERE
+            purchasehistory.customer_email = %s AND purchase_date BETWEEN %s AND %s
+        GROUP BY
+            month
+        ORDER BY
+            month;"""
+        cursor.execute(query, (session['email'], start_date, end_date))
+        spending = cursor.fetchall()
+    except Exception as e:
+        # Handle exception or invalid input
+        print(f"An error occurred: {e}")
+    finally:
+        cursor.close()
+        conn.close()
+
+    return render_template('customerhome.html', year_spending=year_spending, spending=spending)
 
 # Airline Staff Home Page
 @app.route('/staffhome', methods=['GET', 'POST'])
