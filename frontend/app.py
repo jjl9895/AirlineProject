@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 import mysql.connector
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
+import hashlib
 
 app = Flask(__name__)
 app.secret_key = '184nHU'
@@ -27,7 +28,7 @@ nikhilconfig = {
     'database': 'projectairport'
 }  
 # Database configuration
-db_config = jeffconfig
+db_config = nikhilconfig
 
 # Establishing a database connection
 def get_db_connection():
@@ -111,6 +112,7 @@ def check_customer_credentials(email, password):
     user = cursor.fetchone()
     cursor.close()
     conn.close()
+    password = hashlib.md5(password.encode()).hexdigest()
 
     if user:
         password_correct = user[0] == password
@@ -120,7 +122,7 @@ def check_customer_credentials(email, password):
 def check_airlineStaff_credentials(username, password):
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+    password = hashlib.md5(password.encode()).hexdigest()
     query = "SELECT password FROM AirlineStaff WHERE username = %s"
 
     cursor.execute(query, (username,))
@@ -137,7 +139,7 @@ def check_airlineStaff_credentials(username, password):
 def register_customer(email, first_name, last_name, password, pass_num, pass_exp, pass_country, dob, building_num, street, apt_num, city, state, zipcode, phone):
     conn = get_db_connection()
     cursor = conn.cursor()
-    query = "INSERT INTO `customer` (`email`, `first_name`, `last_name`, `password`, `passport_num`, `passport_expiration`, `passport_country`, `date_of_birth`, `building_num`, `street`, `apt_num`, `city`, `state`, `zip`) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"
+    query = "INSERT INTO `customer` (`email`, `first_name`, `last_name`, `password`, `passport_num`, `passport_expiration`, `passport_country`, `date_of_birth`, `building_num`, `street`, `apt_num`, `city`, `state`, `zip`) VALUES (%s, %s, %s, MD5(%s), %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"
     cursor.execute(query, (email, first_name, last_name, password, pass_num, pass_exp, pass_country, dob, building_num, street, apt_num, city, state, zipcode))
     query = "INSERT INTO `customerphonenumbers` (`customer_email`, `phone_number`) VALUES (%s, %s);"
     cursor.execute(query, (email, phone))
@@ -154,8 +156,8 @@ def register_staff(username, first_name, last_name, password, dob, airline, emai
     cursor.execute(query, (airline,))
     user = cursor.fetchone()
     if user:
-        query = "INSERT INTO `airlinestaff` (`username`, `password`, `first_name`, `last_name`, `date_of_birth`, `airline_name`) VALUES (%s, %s, %s, %s, %s, %s);"
-        cursor.execute(query, (username, first_name, last_name, password, dob, airline))
+        query = "INSERT INTO `airlinestaff` (`username`, `password`, `first_name`, `last_name`, `date_of_birth`, `airline_name`) VALUES (%s, MD5(%s), %s, %s, %s, %s);"
+        cursor.execute(query, (username, password, first_name, last_name, dob, airline))
         query = "INSERT INTO `airlinestaffemails` (`staff_username`, `email`) VALUES (%s, %s);"
         cursor.execute(query, (username, email))
         query = "INSERT INTO `airlinestaffphonenumbers` (`staff_username`, `phone_number`) VALUES (%s, %s);"
