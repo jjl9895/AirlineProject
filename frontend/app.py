@@ -27,7 +27,7 @@ nikhilconfig = {
     'database': 'projectairport'
 }  
 # Database configuration
-db_config = nikhilconfig
+db_config = jeffconfig
 
 # Establishing a database connection
 def get_db_connection():
