@@ -236,12 +236,25 @@ def last_year_total():
     conn.close()
     return total[0]
 
+
+def last_6m_total():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    query = "SELECT FORMAT(SUM(price), 2) AS total FROM ticket JOIN purchasehistory ON purchasehistory.ticket_id = ticket.id WHERE purchasehistory.customer_email = %s AND purchase_date BETWEEN %s AND %s;"
+    one_year_ago = datetime.now()- timedelta(days=183)
+    cursor.execute(query, (session['email'], one_year_ago.date(), datetime.now().date()))
+    total = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return total[0]
+
 # Customer Home Page
 @app.route('/customerhome')
 def customerhome():
     if 'email' in session:
         year_spending = last_year_total()
-        return render_template('customerhome.html', year_spending=year_spending)
+        sixm_spending = last_6m_total()
+        return render_template('customerhome.html', year_spending=year_spending, sixm_spending=sixm_spending)
     return render_template('customerlogin.html')
 
 # Airline Staff Home Page
