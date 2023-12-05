@@ -239,8 +239,10 @@ def last_year_total():
 # Customer Home Page
 @app.route('/customerhome')
 def customerhome():
-    year_spending = last_year_total()
-    return render_template('customerhome.html', year_spending=year_spending)
+    if 'email' in session:
+        year_spending = last_year_total()
+        return render_template('customerhome.html', year_spending=year_spending)
+    return render_template('customerlogin.html')
 
 # Airline Staff Home Page
 @app.route('/staffhome', methods=['GET', 'POST'])
@@ -651,7 +653,6 @@ def get_frequent_customer():
 @app.route('/search_customer_flights', methods=['POST'])
 def search_customer_flights():
     customer_email = request.form.get('customer_email')
-    airline_staff_email = session.get('username')  # Example: Fetching from session
 
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -665,14 +666,17 @@ def search_customer_flights():
     cursor.execute("""
         SELECT * FROM Flight
         JOIN Ticket ON Flight.num = Ticket.flight_num
-        WHERE Ticket.customer_email = %s AND Flight.airline_name = %s  AND Flight.dep_date = Ticket.flight_dep_date AND Flight.dep_time = Ticket.flight_dep_time
-    """, (customer_email, airline_name,))
+        WHERE Ticket.customer_email = %s AND Flight.airline_name = %s
+    """, (customer_email, session['airline'],))
     flights = cursor.fetchall()
 
     cursor.close()
     conn.close()
 
-    return render_template('customer_flights_result.html', flights=flights, airline_name = session['airline'],customer_email=customer_email)
+    print(session['airline'])
+    print(customer_email)
+
+    return render_template('customer_flights_result.html', flights=flights, airline_name = session['airline'], customer_email=customer_email)
 
 @app.route('/staffstats')
 def staff_stats():
