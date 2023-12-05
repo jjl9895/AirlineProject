@@ -106,7 +106,8 @@ def stafflogin():
 def check_customer_credentials(email, password):
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT password FROM Customer WHERE email = %s", (email,))
+    query = "SELECT password FROM Customer WHERE email = %s"
+    cursor.execute(query, (email,))
     user = cursor.fetchone()
     cursor.close()
     conn.close()
@@ -149,7 +150,8 @@ def register_customer(email, first_name, last_name, password, pass_num, pass_exp
 def register_staff(username, first_name, last_name, password, dob, airline, email, phone):
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM Airline WHERE name = %s", (airline,))
+    query = "SELECT * FROM Airline WHERE name = %s"
+    cursor.execute(query, (airline,))
     user = cursor.fetchone()
     if user:
         query = "INSERT INTO `airlinestaff` (`username`, `password`, `first_name`, `last_name`, `date_of_birth`, `airline_name`) VALUES (%s, %s, %s, %s, %s, %s);"
@@ -465,7 +467,8 @@ def create():
     create_type = "flight"
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute ("SELECT id FROM airplane WHERE airline_name = %s", (session['airline'], ))
+    query = "SELECT id FROM airplane WHERE airline_name = %s"
+    cursor.execute (query, (session['airline'], ))
     airplane_ids = cursor.fetchall()
     cursor.execute ("SELECT code FROM airport")
     airports = cursor.fetchall()
@@ -661,7 +664,8 @@ def get_total_revenue():
 
     try:
         # Query for last month's revenue
-        cursor.execute("SELECT SUM(Ticket.price) FROM PurchaseHistory JOIN Ticket ON PurchaseHistory.ticket_id = Ticket.id WHERE PurchaseHistory.purchase_date >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH) AND Ticket.airline_name = %s", (session['airline'],))
+        query = "SELECT SUM(Ticket.price) FROM PurchaseHistory JOIN Ticket ON PurchaseHistory.ticket_id = Ticket.id WHERE PurchaseHistory.purchase_date >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH) AND Ticket.airline_name = %s"
+        cursor.execute(query, (session['airline'],))
         result = cursor.fetchone()
         last_month_revenue = result[0] if result else 0
 
