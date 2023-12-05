@@ -506,12 +506,15 @@ def create_airplane():
         # Inserting data into the database
         try:
             if((int(airplane_id),) not in ids):
-                insert_query = """
-                    INSERT INTO Airplane (id, num_of_seats, manufacturer, model_num, manufacture_date, age, airline_name)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s);
-                """
-                cursor.execute(insert_query, (airplane_id, num_of_seats, manufacturer, model_num, manufacture_date, age, session['airline']))
-                conn.commit()
+                if(datetime.strptime(manufacture_date, '%Y-%m-%d')<datetime.now()):
+                    insert_query = """
+                        INSERT INTO Airplane (id, num_of_seats, manufacturer, model_num, manufacture_date, age, airline_name)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s);
+                    """
+                    cursor.execute(insert_query, (airplane_id, num_of_seats, manufacturer, model_num, manufacture_date, age, session['airline']))
+                    conn.commit()
+                else:
+                    raise Exception("Invalid manufacture date.")
             else:
                 raise Exception("Airplane ID must be unique.")
         except Exception as e:
@@ -585,18 +588,20 @@ def schedule_maintenance():
         try:
             conn = get_db_connection()
             cursor = conn.cursor()
-            
-            insert_query = """
-                INSERT INTO Maintenance (start_date, start_time, end_date, end_time, airplane_id)
-                VALUES (%s, %s, %s, %s, %s);
-            """
-            cursor.execute(insert_query, (start_date, start_time, end_date, end_time, airplane_id))
-            conn.commit()
+            if(datetime.strptime(start_date, "%Y-%m-%d")>datetime.now() and (datetime.strptime(start_date, "%Y-%m-%d")<datetime.strptime(end_date, "%Y-%m-%d") or (datetime.strptime(start_date, "%Y-%m-%d")==datetime.strptime(end_date, "%Y-%m-%d") and datetime.strptime(start_time, "%H:%M")<datetime.strptime(end_time, "%H:%M")))):
+                insert_query = """
+                    INSERT INTO Maintenance (start_date, start_time, end_date, end_time, airplane_id)
+                    VALUES (%s, %s, %s, %s, %s);
+                """
+                cursor.execute(insert_query, (start_date, start_time, end_date, end_time, airplane_id))
+                conn.commit()
+            else:
+                raise Exception("Please enter valid dates.")
         except Exception as e:
             conn.rollback()
             cursor.close()
             conn.close()
-            flash("Invalid data, maintenance not scheduled.")
+            flash("Invalid data, maintenance not scheduled. "+str(e))
         else:
             flash("Maintenance successfully scheduled.")
         finally:
