@@ -90,7 +90,7 @@
             <select id="dynamicDropdown" name="airplane_id" required>
                 {% for option in airplane_ids %}
                 <option value="{{ option[0] }}">{{ option[0] }}</option>
-            {% endfor %}
+                {% endfor %}
             </select><br>
             <input type="submit" value="Create">
         </form>

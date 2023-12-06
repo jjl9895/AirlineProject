@@ -3,6 +3,7 @@ import mysql.connector
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 import hashlib
+import sys
 
 app = Flask(__name__)
 app.secret_key = '184nHU'
@@ -28,7 +29,7 @@ nikhilconfig = {
     'database': 'projectairport'
 }  
 # Database configuration
-db_config = nikhilconfig
+db_config = jeffconfig
 
 # Establishing a database connection
 def get_db_connection():
@@ -310,9 +311,9 @@ def staffhome():
     try:
         query = """
             SELECT * FROM Flight
-            WHERE dep_date BETWEEN %s AND %s
+            WHERE dep_date BETWEEN %s AND %s AND airline_name = %s
         """
-        cursor.execute(query, (start_date, end_date))
+        cursor.execute(query, (start_date, end_date, session['airline']))
         flights = cursor.fetchall()
         cursor.close()
         conn.close()
@@ -497,22 +498,49 @@ def create_flight():
         
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT num, dep_date, dep_time FROM Flight;")
-        nums = cursor.fetchall()
+        cursor.execute("SELECT num, dep_date, dep_time FROM Flight WHERE num = %s AND dep_date = %s AND dep_time = %s", (flight_num, datetime.strptime(dep_date,'%Y-%m-%d'), dep_time ))
+        check = cursor.fetchall()
+        print(check, file = sys.stderr)
+        
         # Inserting data into the database
         try:
-            if(dep_date<arr_date or (dep_date==arr_date and dep_time<arr_time)):
-                if(dep_airport != arr_airport):
-                    insert_query = """
-                        INSERT INTO Flight (num, dep_date, dep_time, arr_time, arr_date, base_price, airplane_id, airline_name, dep_airport, arr_airport, status)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    """
-                    cursor.execute(insert_query, (flight_num, dep_date, dep_time, arr_time, arr_date, base_price, airplane_id, session["airline"], dep_airport, arr_airport, status))
-                    conn.commit()
+            if (len(check) == 0 ):
+                if(dep_date<arr_date or (dep_date==arr_date and dep_time<arr_time)):
+                    if(dep_airport != arr_airport):
+                        insert_query = """
+                            INSERT INTO Flight (num, dep_date, dep_time, arr_time, arr_date, base_price, airplane_id, airline_name, dep_airport, arr_airport, status)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        """
+                        cursor.execute(insert_query, (flight_num, dep_date, dep_time, arr_time, arr_date, base_price, airplane_id, session["airline"], dep_airport, arr_airport, status))
+                        conn.commit()
+
+                        max_id_query =  """
+                                        SELECT MAX(id) FROM Ticket
+                                        """
+                        cursor.execute(max_id_query)
+                        max_id = cursor.fetchall()[0][0]
+                        print(max_id, file=sys.stderr)
+                        num_seats_query =   """
+                                            SELECT num_of_seats FROM Airplane WHERE id = %s
+                                            """
+                        cursor.execute(num_seats_query, (airplane_id, ))
+                        num_seats = cursor.fetchall()[0][0]
+                        # ticket creation
+                        query = """
+                                INSERT INTO Ticket (id, price, flight_num, flight_dep_date, flight_dep_time, airline_name)
+                                VALUES(%s, %s, %s, %s, %s, %s)
+                                """
+                        print(num_seats, file=sys.stderr)
+                        for i in range(max_id+1, max_id+num_seats): 
+                            cursor.execute(query, (i, base_price, flight_num, dep_date, dep_time, session["airline"]))
+                            conn.commit()
+
+                    else:
+                        raise Exception("Arrival and departure airports must be different.")
                 else:
-                    raise Exception("Arrival and departure airports must be different.")
-            else:
-                raise Exception("Departure must be before arrival.")
+                    raise Exception("Departure must be before arrival.")
+            else: 
+                raise Exception("Flight Already in Flights")
         except Exception as e:
             conn.rollback()
             cursor.close()

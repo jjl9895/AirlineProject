@@ -70,13 +70,15 @@
             <th>Status</th>
             
         </tr>
-        {% for row in flights %}
-        <tr>
-            {% for item in row %}
-            <td>{{ item }}</td>
+        {% if flights != None %}
+            {% for row in flights %}
+            <tr>
+                {% for item in row %}
+                <td>{{ item }}</td>
+                {% endfor %}
+            </tr>
             {% endfor %}
-        </tr>
-        {% endfor %}
+        {% endif %}
     </table>
 
     <form method="post" action="/staffhome">
