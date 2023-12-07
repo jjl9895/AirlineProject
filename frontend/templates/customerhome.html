@@ -71,6 +71,11 @@
 <div class="left-element">
     <h2>Last year you spent:</h2>
     <h1>${{year_spending}}</h1>
+    <form method="post" action="/customerhome">
+        Start Date: <input type="date" name="start_date_tot" required><br>
+        End Date: <input type="date" name="end_date_tot" required><br>
+        <input type="submit" value="Search" >
+    </form>
 </div>
 <div class="right-element">
     <table border="1">
@@ -88,8 +93,8 @@
     </table>
 
     <form method="post" action="/customerhome">
-        Start Date: <input type="date" name="start_date" required><br>
-        End Date: <input type="date" name="end_date" required><br>
+        Start Date: <input type="date" name="start_date_6m" required><br>
+        End Date: <input type="date" name="end_date_6m" required><br>
         <input type="submit" value="Search" >
     </form>
 </div>

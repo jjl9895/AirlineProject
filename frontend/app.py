@@ -29,7 +29,7 @@ nikhilconfig = {
     'database': 'projectairport'
 }  
 # Database configuration
-db_config = nikhilconfig
+db_config = jeffconfig
 
 # Establishing a database connection
 def get_db_connection():
@@ -230,12 +230,11 @@ def logout():
     session.clear()
     return redirect(url_for('home'))
 
-def last_year_total():
+def last_year_total(start_date, end_date):
     conn = get_db_connection()
     cursor = conn.cursor()
     query = "SELECT FORMAT(SUM(price), 2) AS total FROM ticket JOIN purchasehistory ON purchasehistory.ticket_id = ticket.id WHERE purchasehistory.customer_email = %s AND purchase_date BETWEEN %s AND %s;"
-    one_year_ago = datetime.now()- timedelta(days=365)
-    cursor.execute(query, (session['email'], one_year_ago.date(), datetime.now().date()))
+    cursor.execute(query, (session['email'], start_date, end_date))
     total = cursor.fetchone()
     cursor.close()
     conn.close()
@@ -254,15 +253,22 @@ def last_6m_total():
     return total[0]
 
 # Customer Home Page
-@app.route('/customerhome')
+@app.route('/customerhome', methods=['GET', 'POST'])
 def customerhome():
-    year_spending = last_year_total()
-    end_date = datetime.now().date()
-    start_date = end_date - relativedelta(months=6)
+    end_date_tot = datetime.now().date()
+    start_date_tot = end_date_tot - relativedelta(years=1)
+    year_spending = last_year_total(start_date_tot, end_date_tot)
+    
+    end_date_6m = datetime.now().date()
+    start_date_6m = end_date_6m - relativedelta(months=6)
     if request.method == "POST":
-        if 'start_date' in request.form and 'end_date' in request.form:
-            start_date = request.form.get('start_date')
-            end_date = request.form.get('end_date')
+        if 'start_date_tot' in request.form and 'end_date_tot' in request.form:
+            start_date_tot = request.form.get('start_date_tot')
+            end_date_tot = request.form.get('end_date_tot')
+
+        if 'start_date_6m' in request.form and 'end_date_6m' in request.form:
+            start_date_6m = request.form.get('start_date_6m')
+            end_date_6m = request.form.get('end_date_6m')
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -277,8 +283,8 @@ def customerhome():
             month
         ORDER BY
             month;"""
-        cursor.execute(query, (session['email'], start_date, end_date))
-        spending = cursor.fetchall()
+        cursor.execute(query, (session['email'], start_date_6m, end_date_6m))
+        spending_6m = cursor.fetchall()
     except Exception as e:
         # Handle exception or invalid input
         print(f"An error occurred: {e}")
@@ -286,7 +292,7 @@ def customerhome():
         cursor.close()
         conn.close()
 
-    return render_template('customerhome.html', year_spending=year_spending, spending=spending)
+    return render_template('customerhome.html', year_spending=year_spending, spending_6m=spending_6m)
 
 # Airline Staff Home Page
 @app.route('/staffhome', methods=['GET', 'POST'])
@@ -450,8 +456,9 @@ def buyticket(ticket_id):
         cursor.execute(query, (email,))
         dob = cursor.fetchone()[0]
 
-        query = "INSERT INTO PurchaseHistory (customer_email, purchase_time, card_num, exp_date, purchase_date, first_name, last_name, name_on_card, date_of_birth, card_type, ticket_id) \
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s,%s)"
+        query = """INSERT INTO PurchaseHistory (customer_email, purchase_time, card_num, exp_date, purchase_date, first_name, last_name, 
+            name_on_card, date_of_birth, card_type, ticket_id) 
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s,%s)"""
         cursor.execute(query, (email, time, card_number, expiration_date, purchase_date, first_name, last_name, full_name, dob, card_type, ticket_id))
         conn.commit()
         cursor.close()
