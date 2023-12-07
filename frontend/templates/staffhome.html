@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Customer Home Page</title>
+    <title>Staff Home Page</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -68,6 +68,7 @@
             <th>Departure Airport</th>
             <th>Arrival Airport</th>
             <th>Status</th>
+            <th>View Customers</th>
             
         </tr>
         {% if flights != None %}
@@ -76,6 +77,7 @@
                 {% for item in row %}
                 <td>{{ item }}</td>
                 {% endfor %}
+                <td><a href= "{{ url_for('viewcustomers', flight_num=row[0], dep_date=row[1], dep_time=row[2] ) }}">View Customers</a></td>
             </tr>
             {% endfor %}
         {% endif %}

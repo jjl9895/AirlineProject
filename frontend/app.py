@@ -371,6 +371,22 @@ def customerflights():
 
     return render_template('customerflights.html', past_flights=past_flights, future_flights=future_flights)
 
+@app.route('/viewcustomers/<int:flight_num>/<dep_date>/<dep_time>', methods=['GET', 'POST'])
+def viewcustomers(flight_num, dep_date, dep_time):
+    if 'username' not in session:
+        return redirect(url_for('stafflogin'))
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    query = "SELECT c.email, first_name, last_name, passport_num, passport_expiration, passport_country, date_of_birth, building_num, street, apt_num, city, state, zip FROM Customer as c JOIN Ticket as t on c.email=t.customer_email WHERE airline_name = %s AND flight_num = %s AND flight_dep_date = %s AND flight_dep_time=%s"
+    cursor.execute(query, (session['airline'],flight_num, dep_date, dep_time))
+    customers = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    return render_template('viewcustomers.html', flight_num=flight_num, dep_date=dep_date, dep_time=dep_time, customers=customers)
+
+
 @app.route('/purchasetickets/<int:flight_id>', methods=['GET', 'POST'])
 def purchasetickets(flight_id):
     if 'email' not in session:
