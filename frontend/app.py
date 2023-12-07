@@ -17,7 +17,7 @@ jeffconfig = {
 
 graceconfig = { 
     'host': 'localhost', 
-    'user': 'graceableidinger',         
+    'user': 'graceableidnger',         
     'password': '12345',    
     'database': 'projectairport'
 }  
@@ -29,7 +29,7 @@ nikhilconfig = {
     'database': 'projectairport'
 }  
 # Database configuration
-db_config = jeffconfig
+db_config = graceconfig
 
 # Establishing a database connection
 def get_db_connection():
@@ -351,18 +351,25 @@ def customerflights():
     customer = session['email']
     conn = get_db_connection()
     cursor = conn.cursor()
-    query = "SELECT f.num, f.dep_airport, f.arr_airport, f.dep_date, f.dep_time, f.arr_date, f.arr_time, f.status \
+    query = "SELECT f.num, f.dep_airport, f.arr_airport, f.dep_date, f.dep_time, f.arr_date, f.arr_time, f.status, t.airline_name \
             FROM PurchaseHistory as ph \
             JOIN Ticket as t on t.id = ph.ticket_id \
             JOIN Flight as f on f.num = t.flight_num \
-            WHERE ph.customer_email = %s AND f.dep_date > CURDATE()" 
+            WHERE ph.customer_email = %s AND f.dep_date >= CURDATE()" 
     
     cursor.execute(query, (customer,))
-    flights = cursor.fetchall()
+    future_flights = cursor.fetchall()
+    query = "SELECT f.num, f.dep_airport, f.arr_airport, f.dep_date, f.dep_time, f.arr_date, f.arr_time, f.status, t.airline_name \
+            FROM PurchaseHistory as ph \
+            JOIN Ticket as t on t.id = ph.ticket_id \
+            JOIN Flight as f on f.num = t.flight_num \
+            WHERE ph.customer_email = %s AND f.dep_date < CURDATE()"
+    cursor.execute(query, (customer,))
+    past_flights = cursor.fetchall()
     cursor.close()
     conn.close()
 
-    return render_template('customerflights.html', flights=flights)
+    return render_template('customerflights.html', past_flights=past_flights, future_flights=future_flights)
 
 @app.route('/purchasetickets/<int:flight_id>', methods=['GET', 'POST'])
 def purchasetickets(flight_id):
@@ -438,6 +445,25 @@ def buyticket(ticket_id):
 
     return render_template('buyticket.html', ticket_id=ticket_id)
 
+@app.route('/reviewflight/<int:flight_num>/<dep_date>/<dep_time>/<airline_name>', methods=['GET', 'POST'])
+def reviewflight(flight_num, dep_date, dep_time, airline_name):
+    email = session['email']
+    if request.method == 'POST': 
+        rating = request.form.get('rating')
+        comments = request.form.get('comments')
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        query = "INSERT INTO reviews (customer_email, flight_num, rating, comment, dep_date, dep_time, airline_name) \
+            VALUES (%s, %s, %s, %s, %s, %s, %s)"
+        cursor.execute(query, (email, flight_num, rating, comments, dep_date, dep_time, airline_name))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return redirect(url_for('customerflights'))
+
+
+    return render_template('reviewflight.html', flight_num=flight_num, dep_date=dep_date, dep_time=dep_time, airline_name=airline_name)
 
 # Flight Search Page
 @app.route('/searchflights', methods=['GET', 'POST'])
@@ -460,7 +486,6 @@ def searchflights():
         conn.close()
 
     return render_template('searchflights.html', flights=flights)
-
 @app.route('/create', methods=['GET','POST'])
 def create():
     result = "NULL"
@@ -531,7 +556,9 @@ def create_flight():
                                 VALUES(%s, %s, %s, %s, %s, %s)
                                 """
                         print(num_seats, file=sys.stderr)
-                        for i in range(max_id+1, max_id+num_seats): 
+                        if(max_id == None):
+                            max_id = 0
+                        for i in range(max_id+1, max_id+1+num_seats): 
                             cursor.execute(query, (i, base_price, flight_num, dep_date, dep_time, session["airline"]))
                             conn.commit()
 
@@ -744,8 +771,8 @@ def search_customer_flights():
     cursor.execute("""
         SELECT * FROM Flight
         JOIN Ticket ON Flight.num = Ticket.flight_num
-        WHERE Ticket.customer_email = %s AND Flight.airline_name = %s
-    """, (customer_email, session['airline'],))
+        WHERE Ticket.customer_email = %s AND Flight.airline_name = %s )
+    """, (customer_email, session['airline']))
     flights = cursor.fetchall()
 
     cursor.close()
