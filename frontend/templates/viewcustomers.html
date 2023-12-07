@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Staff Home Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        .header {
+            background-color: #f1f1f1;
+            padding: 10px;
+            text-align: center;
+        }
+        .content {
+            padding: 20px;
+        }
+    </style>
+    </head>
+<body>
+    <div class="header">
+        <h2>Customers on {{airline_name}} Flight {{ flight_num }} at {{dep_time}} on {{dep_date}} </h2>
+    </div>
+    <div class="content">
+        <table border="1">
+            <tr>
+                <th>Email</th>
+                <th>First Name </th>
+                <th>Last Name</th>
+                <th>Passport Number</th>
+                <th>Passport Expiration</th>
+                <th>Passport Country</th>
+                <th>Date of Birth</th>
+                <th>Building Number</th>
+                <th>Street</th>
+                <th>Apartment Number</th>
+                <th>City</th>
+                <th>State</th>
+                <th>Zip</th>
+            </tr>
+            {% if customers != None %}
+                {% for row in customers %}
+                <tr>
+                    {% for item in row %}
+                    <td>{{ item }}</td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            {% endif %}
+        </table>
+    </div>
+</body>
+</html>
