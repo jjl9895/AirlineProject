@@ -752,7 +752,6 @@ def get_frequent_customer():
     cursor = conn.cursor()
 
 
-    # Adjust this query to find the most frequent flying customer
     cursor.execute("SELECT Customer.first_name, Customer.last_name, COUNT(*) FROM purchasehistory JOIN Customer JOIN Ticket ON PurchaseHistory.customer_email = Customer.email AND Ticket.customer_email = purchasehistory.customer_email WHERE airline_name = %s AND purchase_date >= CURDATE() - INTERVAL 1 YEAR GROUP BY purchasehistory.customer_email ORDER BY COUNT(*) DESC LIMIT 1", (session['airline'],))
     frequent_customer = cursor.fetchone()
 
