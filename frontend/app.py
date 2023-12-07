@@ -503,7 +503,7 @@ def searchflights():
         conn = get_db_connection()
         cursor = conn.cursor()
         query = "SELECT num, dep_airport, arr_airport, dep_date, dep_time, arr_date, arr_time, status \
-              FROM Flight WHERE dep_airport = %s AND arr_airport = %s AND dep_date = %s"
+              FROM Flight WHERE dep_airport = %s AND arr_airport = %s AND dep_date = %s AND dep_date >= CURDATE()"
         cursor.execute(query, (departure_airport, arrival_airport, departure_date))
         flights = cursor.fetchall()
         cursor.close()
