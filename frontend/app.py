@@ -1,7 +1,9 @@
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, flash, get_flashed_messages
 import mysql.connector
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
+import hashlib
+import sys
 
 app = Flask(__name__)
 app.secret_key = '184nHU'
@@ -15,7 +17,7 @@ jeffconfig = {
 
 graceconfig = { 
     'host': 'localhost', 
-    'user': 'graceableidinger',         
+    'user': 'graceableidnger',         
     'password': '12345',    
     'database': 'projectairport'
 }  
@@ -24,10 +26,10 @@ nikhilconfig = {
     'host': 'localhost', 
     'user': 'nikhilreddy',         
     'password': '123456',    
-    'database': 'airportproject'
+    'database': 'projectairport'
 }  
 # Database configuration
-db_config = jeffconfig
+db_config = nikhilconfig
 
 # Establishing a database connection
 def get_db_connection():
@@ -86,8 +88,15 @@ def stafflogin():
         user_exists, password_correct = check_airlineStaff_credentials(username, password)
         if user_exists:
             if password_correct:
+                conn = get_db_connection()
+                cursor = conn.cursor()
                 session['username'] = username
-                return redirect(url_for('airlineStaffhome'))  # Redirect to customer home page
+                query = "SELECT airline_name FROM airlinestaff WHERE username = %s"
+                cursor.execute(query, (session['username'], ))
+                session['airline'] = cursor.fetchone()[0]
+                cursor.close()
+                conn.close()
+                return redirect(url_for('staffhome'))  # Redirect to staff home page
             else:
                 message = 'Wrong password. Try again.'
         else:
@@ -99,10 +108,12 @@ def stafflogin():
 def check_customer_credentials(email, password):
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT password FROM Customer WHERE email = %s", (email,))
+    query = "SELECT password FROM Customer WHERE email = %s"
+    cursor.execute(query, (email,))
     user = cursor.fetchone()
     cursor.close()
     conn.close()
+    password = hashlib.md5(password.encode()).hexdigest()
 
     if user:
         password_correct = user[0] == password
@@ -112,7 +123,7 @@ def check_customer_credentials(email, password):
 def check_airlineStaff_credentials(username, password):
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+    password = hashlib.md5(password.encode()).hexdigest()
     query = "SELECT password FROM AirlineStaff WHERE username = %s"
 
     cursor.execute(query, (username,))
@@ -129,7 +140,7 @@ def check_airlineStaff_credentials(username, password):
 def register_customer(email, first_name, last_name, password, pass_num, pass_exp, pass_country, dob, building_num, street, apt_num, city, state, zipcode, phone):
     conn = get_db_connection()
     cursor = conn.cursor()
-    query = "INSERT INTO `customer` (`email`, `first_name`, `last_name`, `password`, `passport_num`, `passport_expiration`, `passport_country`, `date_of_birth`, `building_num`, `street`, `apt_num`, `city`, `state`, `zip`) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"
+    query = "INSERT INTO `customer` (`email`, `first_name`, `last_name`, `password`, `passport_num`, `passport_expiration`, `passport_country`, `date_of_birth`, `building_num`, `street`, `apt_num`, `city`, `state`, `zip`) VALUES (%s, %s, %s, MD5(%s), %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);"
     cursor.execute(query, (email, first_name, last_name, password, pass_num, pass_exp, pass_country, dob, building_num, street, apt_num, city, state, zipcode))
     query = "INSERT INTO `customerphonenumbers` (`customer_email`, `phone_number`) VALUES (%s, %s);"
     cursor.execute(query, (email, phone))
@@ -142,11 +153,12 @@ def register_customer(email, first_name, last_name, password, pass_num, pass_exp
 def register_staff(username, first_name, last_name, password, dob, airline, email, phone):
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM Airline WHERE name = %s", (airline,))
+    query = "SELECT * FROM Airline WHERE name = %s"
+    cursor.execute(query, (airline,))
     user = cursor.fetchone()
     if user:
-        query = "INSERT INTO `airlinestaff` (`username`, `password`, `first_name`, `last_name`, `date_of_birth`, `airline_name`) VALUES (%s, %s, %s, %s, %s, %s);"
-        cursor.execute(query, (username, first_name, last_name, password, dob, airline))
+        query = "INSERT INTO `airlinestaff` (`username`, `password`, `first_name`, `last_name`, `date_of_birth`, `airline_name`) VALUES (%s, MD5(%s), %s, %s, %s, %s);"
+        cursor.execute(query, (username, password, first_name, last_name, dob, airline))
         query = "INSERT INTO `airlinestaffemails` (`staff_username`, `email`) VALUES (%s, %s);"
         cursor.execute(query, (username, email))
         query = "INSERT INTO `airlinestaffphonenumbers` (`staff_username`, `phone_number`) VALUES (%s, %s);"
@@ -229,15 +241,60 @@ def last_year_total():
     conn.close()
     return total[0]
 
+
+def last_6m_total():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    query = "SELECT FORMAT(SUM(price), 2) AS total FROM ticket JOIN purchasehistory ON purchasehistory.ticket_id = ticket.id WHERE purchasehistory.customer_email = %s AND purchase_date BETWEEN %s AND %s;"
+    one_year_ago = datetime.now()- timedelta(days=183)
+    cursor.execute(query, (session['email'], one_year_ago.date(), datetime.now().date()))
+    total = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return total[0]
+
 # Customer Home Page
 @app.route('/customerhome')
 def customerhome():
     year_spending = last_year_total()
-    return render_template('customerhome.html', year_spending=year_spending)
+    end_date = datetime.now().date()
+    start_date = end_date - relativedelta(months=6)
+    if request.method == "POST":
+        if 'start_date' in request.form and 'end_date' in request.form:
+            start_date = request.form.get('start_date')
+            end_date = request.form.get('end_date')
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        query = """SELECT
+        DATE_FORMAT(purchasehistory.purchase_date, '%Y-%m') AS month,
+        SUM(ticket.price) AS total_spending
+        FROM
+            ticket JOIN purchasehistory ON purchasehistory.ticket_id = ticket.id
+        WHERE
+            purchasehistory.customer_email = %s AND purchase_date BETWEEN %s AND %s
+        GROUP BY
+            month
+        ORDER BY
+            month;"""
+        cursor.execute(query, (session['email'], start_date, end_date))
+        spending = cursor.fetchall()
+    except Exception as e:
+        # Handle exception or invalid input
+        print(f"An error occurred: {e}")
+    finally:
+        cursor.close()
+        conn.close()
+
+    return render_template('customerhome.html', year_spending=year_spending, spending=spending)
 
 # Airline Staff Home Page
 @app.route('/staffhome', methods=['GET', 'POST'])
-def airlineStaffhome():
+def staffhome():
+    result = "NULL"
+    if(get_flashed_messages()):
+        result = get_flashed_messages()[0]
+        get_flashed_messages().clear()
     flights = None
     start_date = datetime.now().date()
     end_date = start_date + relativedelta(days=30)
@@ -254,9 +311,9 @@ def airlineStaffhome():
     try:
         query = """
             SELECT * FROM Flight
-            WHERE dep_date BETWEEN %s AND %s
+            WHERE dep_date BETWEEN %s AND %s AND airline_name = %s
         """
-        cursor.execute(query, (start_date, end_date))
+        cursor.execute(query, (start_date, end_date, session['airline']))
         flights = cursor.fetchall()
         cursor.close()
         conn.close()
@@ -264,7 +321,7 @@ def airlineStaffhome():
         # Handle exception or invalid input
         print(f"An error occurred: {e}")
 
-    return render_template('staffhome.html', flights=flights, flight_nums=flight_nums)
+    return render_template('staffhome.html', flights=flights, flight_nums=flight_nums, result=result)
 
 @app.route('/change_status', methods=['POST'])
 def changestatus():
@@ -286,7 +343,7 @@ def changestatus():
         finally:
             cursor.close()
             conn.close()
-    return redirect(url_for('airlineStaffhome'))
+    return redirect(url_for('staffhome'))
 
 # Customer My Flights Page
 @app.route('/customerflights')
@@ -294,18 +351,25 @@ def customerflights():
     customer = session['email']
     conn = get_db_connection()
     cursor = conn.cursor()
-    query = "SELECT f.num, f.dep_airport, f.arr_airport, f.dep_date, f.dep_time, f.arr_date, f.arr_time, f.status \
+    query = "SELECT f.num, f.dep_airport, f.arr_airport, f.dep_date, f.dep_time, f.arr_date, f.arr_time, f.status, t.airline_name \
             FROM PurchaseHistory as ph \
             JOIN Ticket as t on t.id = ph.ticket_id \
             JOIN Flight as f on f.num = t.flight_num \
-            WHERE ph.customer_email = %s AND f.dep_date > CURDATE()" 
+            WHERE ph.customer_email = %s AND f.dep_date >= CURDATE()" 
     
     cursor.execute(query, (customer,))
-    flights = cursor.fetchall()
+    future_flights = cursor.fetchall()
+    query = "SELECT f.num, f.dep_airport, f.arr_airport, f.dep_date, f.dep_time, f.arr_date, f.arr_time, f.status, t.airline_name \
+            FROM PurchaseHistory as ph \
+            JOIN Ticket as t on t.id = ph.ticket_id \
+            JOIN Flight as f on f.num = t.flight_num \
+            WHERE ph.customer_email = %s AND f.dep_date < CURDATE()"
+    cursor.execute(query, (customer,))
+    past_flights = cursor.fetchall()
     cursor.close()
     conn.close()
 
-    return render_template('customerflights.html', flights=flights)
+    return render_template('customerflights.html', past_flights=past_flights, future_flights=future_flights)
 
 @app.route('/purchasetickets/<int:flight_id>', methods=['GET', 'POST'])
 def purchasetickets(flight_id):
@@ -381,6 +445,25 @@ def buyticket(ticket_id):
 
     return render_template('buyticket.html', ticket_id=ticket_id)
 
+@app.route('/reviewflight/<int:flight_num>/<dep_date>/<dep_time>/<airline_name>', methods=['GET', 'POST'])
+def reviewflight(flight_num, dep_date, dep_time, airline_name):
+    email = session['email']
+    if request.method == 'POST': 
+        rating = request.form.get('rating')
+        comments = request.form.get('comments')
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        query = "INSERT INTO reviews (customer_email, flight_num, rating, comment, dep_date, dep_time, airline_name) \
+            VALUES (%s, %s, %s, %s, %s, %s, %s)"
+        cursor.execute(query, (email, flight_num, rating, comments, dep_date, dep_time, airline_name))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return redirect(url_for('customerflights'))
+
+
+    return render_template('reviewflight.html', flight_num=flight_num, dep_date=dep_date, dep_time=dep_time, airline_name=airline_name)
 
 # Flight Search Page
 @app.route('/searchflights', methods=['GET', 'POST'])
@@ -403,13 +486,17 @@ def searchflights():
         conn.close()
 
     return render_template('searchflights.html', flights=flights)
-
 @app.route('/create', methods=['GET','POST'])
 def create():
+    result = "NULL"
+    if(get_flashed_messages()):
+        result = get_flashed_messages()[0]
+        get_flashed_messages().clear()
     create_type = "flight"
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute ("SELECT id FROM airplane")
+    query = "SELECT id FROM airplane WHERE airline_name = %s"
+    cursor.execute (query, (session['airline'], ))
     airplane_ids = cursor.fetchall()
     cursor.execute ("SELECT code FROM airport")
     airports = cursor.fetchall()
@@ -417,7 +504,7 @@ def create():
     conn.close()
     if request.method == 'POST':
         create_type = request.form.get('create_type')
-    return render_template('create.html', create_type=create_type, airplane_ids=airplane_ids, airports=airports)
+    return render_template('create.html', create_type=create_type, airplane_ids=airplane_ids, airports=airports, result=result)
 
 @app.route('/create_flight', methods=['POST'])
 def create_flight():
@@ -430,35 +517,76 @@ def create_flight():
         arr_date = request.form.get('arr_date')
         base_price = request.form.get('base_price')
         airplane_id = request.form.get('airplane_id')
+        cursor.execute("SELECT EXISTS(SELECT 1 FROM maintenance WHERE CURDATE() BETWEEN start_date AND end_date AND airplane_id = %s)", (airplane_id,))
+        exists = cursor.fetchall()
+        if exists == 1:
+            raise Exception("Plane under maintenace")
+
         dep_airport = request.form.get('dep_airport')
         arr_airport = request.form.get('arr_airport')
         status = request.form.get('status')
-
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT num, dep_date, dep_time FROM Flight WHERE num = %s AND dep_date = %s AND dep_time = %s", (flight_num, datetime.strptime(dep_date,'%Y-%m-%d'), dep_time ))
+        check = cursor.fetchall()
+        print(check, file = sys.stderr)
+        
         # Inserting data into the database
         try:
-            conn = get_db_connection()
-            cursor = conn.cursor()
-            query = "SELECT airline_name FROM airlinestaff WHERE username = %s"
-            cursor.execute(query, (session["email"], ))
-            airline_name = cursor.fetchone()[0]
+            if (len(check) == 0 ):
+                if(dep_date<arr_date or (dep_date==arr_date and dep_time<arr_time)):
+                    if(dep_airport != arr_airport):
+                        insert_query = """
+                            INSERT INTO Flight (num, dep_date, dep_time, arr_time, arr_date, base_price, airplane_id, airline_name, dep_airport, arr_airport, status)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        """
+                        cursor.execute(insert_query, (flight_num, dep_date, dep_time, arr_time, arr_date, base_price, airplane_id, session["airline"], dep_airport, arr_airport, status))
+                        conn.commit()
 
-            insert_query = """
-                INSERT INTO Flight (num, dep_date, dep_time, arr_time, arr_date, base_price, airplane_id, airline_name, dep_airport, arr_airport, status)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """
-            cursor.execute(insert_query, (flight_num, dep_date, dep_time, arr_time, arr_date, base_price, airplane_id, airline_name, dep_airport, arr_airport, status))
-            conn.commit()
+                        max_id_query =  """
+                                        SELECT MAX(id) FROM Ticket
+                                        """
+                        cursor.execute(max_id_query)
+                        max_id = cursor.fetchall()[0][0]
+                        print(max_id, file=sys.stderr)
+                        num_seats_query =   """
+                                            SELECT num_of_seats FROM Airplane WHERE id = %s
+                                            """
+                        cursor.execute(num_seats_query, (airplane_id, ))
+                        num_seats = cursor.fetchall()[0][0]
+                        # ticket creation
+                        query = """
+                                INSERT INTO Ticket (id, price, flight_num, flight_dep_date, flight_dep_time, airline_name)
+                                VALUES(%s, %s, %s, %s, %s, %s)
+                                """
+                        print(num_seats, file=sys.stderr)
+                        if(max_id == None):
+                            max_id = 0
+                        for i in range(max_id+1, max_id+1+num_seats): 
+                            cursor.execute(query, (i, base_price, flight_num, dep_date, dep_time, session["airline"]))
+                            conn.commit()
+
+                    else:
+                        raise Exception("Arrival and departure airports must be different.")
+                else:
+                    raise Exception("Departure must be before arrival.")
+            else: 
+                raise Exception("Flight Already in Flights")
         except Exception as e:
             conn.rollback()
             cursor.close()
             conn.close()
-            return f"An error occurred: {e}", 500
+            flash("Invalid data, flight not added. "+str(e))
+            return redirect(url_for('create'))
+        else:
+            flash("Flight successfully added.")
         finally:
             cursor.close()
             conn.close()
 
     # If the method is not POST, redirect to the airline staff home page
-    return redirect(url_for('airlineStaffhome'))
+    return redirect(url_for('staffhome'))
 
 def calc_age(date_str):
     date= datetime.strptime(date_str, '%Y-%m-%d')
@@ -475,28 +603,33 @@ def create_airplane():
         manufacturer = request.form.get('manufacturer')
         model_num = request.form.get('model_num')
         manufacture_date = request.form.get('manufacture_date')
-
         age = calc_age(manufacture_date)
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT id FROM Airplane;")
+        ids = cursor.fetchall()
         # Inserting data into the database
         try:
-            conn = get_db_connection()
-            cursor = conn.cursor()
-            query = "SELECT airline_name FROM airlinestaff WHERE username = %s"
-            cursor.execute(query, (session["email"], ))
-            airline_name = cursor.fetchone()[0]
-
-            
-            insert_query = """
-                INSERT INTO Airplane (id, num_of_seats, manufacturer, model_num, manufacture_date, age, airline_name)
-                VALUES (%s, %s, %s, %s, %s, %s, %s);
-            """
-            cursor.execute(insert_query, (airplane_id, num_of_seats, manufacturer, model_num, manufacture_date, age, airline_name))
-            conn.commit()
+            if((int(airplane_id),) not in ids):
+                if(datetime.strptime(manufacture_date, '%Y-%m-%d')<datetime.now()):
+                    insert_query = """
+                        INSERT INTO Airplane (id, num_of_seats, manufacturer, model_num, manufacture_date, age, airline_name)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s);
+                    """
+                    cursor.execute(insert_query, (airplane_id, num_of_seats, manufacturer, model_num, manufacture_date, age, session['airline']))
+                    conn.commit()
+                else:
+                    raise Exception("Invalid manufacture date.")
+            else:
+                raise Exception("Airplane ID must be unique.")
         except Exception as e:
             conn.rollback()
             cursor.close()
             conn.close()
-            return f"An error occurred: {e}", 500
+            flash("Invalid data, airplane not registered. "+str(e))
+        else:
+            flash("Airplane successfully registered.")
         finally:
             cursor.close()
             conn.close()
@@ -515,22 +648,31 @@ def create_airport():
         num_of_term = request.form.get('num_of_term')
         airport_type = request.form.get('type')
 
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT code FROM Airport;")
+        codes = cursor.fetchall()
         # Inserting data into the database
         try:
-            conn = get_db_connection()
-            cursor = conn.cursor()
-        
-            insert_query = """
-                INSERT INTO Airport (code, name, city, country, num_of_terminals, type)
-                VALUES (%s, %s, %s, %s, %s, %s);
-            """
-            cursor.execute(insert_query, (code, name, city, country, num_of_term, airport_type))
-            conn.commit()
+            if((code,) not in codes):
+                if(len(code) == 3 and code.isalpha()):
+                    insert_query = """
+                        INSERT INTO Airport (code, name, city, country, num_of_terminals, type)
+                        VALUES (%s, %s, %s, %s, %s, %s);
+                    """
+                    cursor.execute(insert_query, (code, name, city, country, num_of_term, airport_type))
+                    conn.commit()
+                else:
+                    raise Exception("Invalid airport code.")
+            else:
+                raise Exception("Code must be unique.")
         except Exception as e:
             conn.rollback()
             cursor.close()
             conn.close()
-            return f"An error occurred: {e}", 500
+            flash("Invalid data, airport not registered. "+str(e))
+        else:
+            flash("Airport successfully registered.")
         finally:
             cursor.close()
             conn.close()
@@ -552,18 +694,22 @@ def schedule_maintenance():
         try:
             conn = get_db_connection()
             cursor = conn.cursor()
-            
-            insert_query = """
-                INSERT INTO Maintenance (start_date, start_time, end_date, end_time, airplane_id)
-                VALUES (%s, %s, %s, %s, %s);
-            """
-            cursor.execute(insert_query, (start_date, start_time, end_date, end_time, airplane_id))
-            conn.commit()
+            if(datetime.strptime(start_date, "%Y-%m-%d")>datetime.now() and (datetime.strptime(start_date, "%Y-%m-%d")<datetime.strptime(end_date, "%Y-%m-%d") or (datetime.strptime(start_date, "%Y-%m-%d")==datetime.strptime(end_date, "%Y-%m-%d") and datetime.strptime(start_time, "%H:%M")<datetime.strptime(end_time, "%H:%M")))):
+                insert_query = """
+                    INSERT INTO Maintenance (start_date, start_time, end_date, end_time, airplane_id)
+                    VALUES (%s, %s, %s, %s, %s);
+                """
+                cursor.execute(insert_query, (start_date, start_time, end_date, end_time, airplane_id))
+                conn.commit()
+            else:
+                raise Exception("Please enter valid dates.")
         except Exception as e:
             conn.rollback()
             cursor.close()
             conn.close()
-            return f"An error occurred: {e}", 500
+            flash("Invalid data, maintenance not scheduled. "+str(e))
+        else:
+            flash("Maintenance successfully scheduled.")
         finally:
             cursor.close()
             conn.close()
@@ -580,7 +726,8 @@ def get_total_revenue():
 
     try:
         # Query for last month's revenue
-        cursor.execute("SELECT SUM(Ticket.price) FROM PurchaseHistory JOIN Ticket ON PurchaseHistory.ticket_id = Ticket.id WHERE PurchaseHistory.purchase_date >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH)")
+        query = "SELECT SUM(Ticket.price) FROM PurchaseHistory JOIN Ticket ON PurchaseHistory.ticket_id = Ticket.id WHERE PurchaseHistory.purchase_date >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH) AND Ticket.airline_name = %s"
+        cursor.execute(query, (session['airline'],))
         result = cursor.fetchone()
         last_month_revenue = result[0] if result else 0
 
@@ -588,7 +735,7 @@ def get_total_revenue():
         cursor.fetchall()
 
         # Query for last year's revenue
-        cursor.execute("SELECT SUM(Ticket.price) FROM PurchaseHistory JOIN Ticket ON PurchaseHistory.ticket_id = Ticket.id WHERE PurchaseHistory.purchase_date >= DATE_SUB(CURDATE(), INTERVAL 1 YEAR)")
+        cursor.execute("SELECT SUM(Ticket.price) FROM PurchaseHistory JOIN Ticket ON PurchaseHistory.ticket_id = Ticket.id WHERE PurchaseHistory.purchase_date >= DATE_SUB(CURDATE(), INTERVAL 1 YEAR) AND Ticket.airline_name = %s", (session['airline'],))
         result = cursor.fetchone()
         last_year_revenue = result[0] if result else 0
 
@@ -604,12 +751,9 @@ def get_frequent_customer():
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    query = "SELECT airline_name FROM airlinestaff WHERE username = %s"
-    cursor.execute(query, (session["username"], ))
-    airline_name = cursor.fetchone()[0]
 
     # Adjust this query to find the most frequent flying customer
-    cursor.execute("SELECT first_name, last_name, COUNT(*) FROM Ticket JOIN Customer ON Ticket.customer_email = Customer.email WHERE airline_name = %s GROUP BY customer_email ORDER BY COUNT(*) DESC LIMIT 1", (airline_name,))
+    cursor.execute("SELECT first_name, last_name, COUNT(*) FROM Ticket JOIN Customer ON Ticket.customer_email = Customer.email WHERE airline_name = %s GROUP BY customer_email ORDER BY COUNT(*) DESC LIMIT 1", (session['airline'],))
     frequent_customer = cursor.fetchone()
 
     cursor.close()
@@ -619,27 +763,30 @@ def get_frequent_customer():
 @app.route('/search_customer_flights', methods=['POST'])
 def search_customer_flights():
     customer_email = request.form.get('customer_email')
-    airline_staff_email = session.get('email')  # Example: Fetching from session
 
     conn = get_db_connection()
     cursor = conn.cursor()
 
     query = "SELECT airline_name FROM airlinestaff WHERE username = %s"
-    cursor.execute(query, (session["email"], ))
+    cursor.execute(query, (session['username'], ))
     airline_name = cursor.fetchone()[0]
+
 
     # Now, get the flights for the customer on the same airline
     cursor.execute("""
-        SELECT Flight.* FROM Flight
+        SELECT * FROM Flight
         JOIN Ticket ON Flight.num = Ticket.flight_num
-        WHERE Ticket.customer_email = %s AND Flight.airline_name = %s
-    """, (customer_email, airline_name))
+        WHERE Ticket.customer_email = %s AND Flight.airline_name = %s )
+    """, (customer_email, session['airline']))
     flights = cursor.fetchall()
 
     cursor.close()
     conn.close()
 
-    return render_template('customer_flights_result.html', flights=flights, airline_name = airline_name,customer_email=customer_email)
+    print(session['airline'])
+    print(customer_email)
+
+    return render_template('customer_flights_result.html', flights=flights, airline_name = session['airline'], customer_email=customer_email)
 
 @app.route('/staffstats')
 def staff_stats():
@@ -650,9 +797,6 @@ def staff_stats():
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    query = "SELECT airline_name FROM airlinestaff WHERE username = %s"
-    cursor.execute(query, (session["username"], ))
-    airline_name = cursor.fetchone()[0]
 
     # Adjusted query to fetch flights with ratings and comments
     cursor.execute("""
@@ -674,7 +818,7 @@ def staff_stats():
             Flight.airline_name = %s
         ORDER BY 
             Flight.num, Reviews.dep_date, Reviews.dep_time
-    """, (airline_name,))
+    """, (session['airline'],))
     flights_with_ratings = cursor.fetchall()
 
     cursor.close()

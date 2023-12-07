@@ -13,11 +13,10 @@
             <!-- Other relevant flight details -->
         </tr>
         <!-- Table data -->
-        {{flights}}
         {% for flight in flights %}
         <tr>
-            <td>{{ flight.num }}</td>
-            <td>{{ flight.dep_date }}</td>
+            <td>{{ flight[0] }}</td>
+            <td>{{ flight[1] }}</td>
             <!-- Other flight details -->
         </tr>
         {% endfor %}

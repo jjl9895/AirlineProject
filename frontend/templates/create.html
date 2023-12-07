@@ -5,7 +5,7 @@
 
 <body>
     <form method="post" action="/create">
-        <label for="selectcreation">Add a New:</label>
+        <label for="selectcreation">New:</label>
         <select id="selectcreation" name="create_type">
             <option value="flight">Flight</option>
             <option value="airplane">Airplane</option>
@@ -16,7 +16,7 @@
     </form>
 
     {% if create_type == "flight" %}
-        <h2>Add a 
+        <h3>Add a New Flight: </h3>
         <form method="post" action="/create_flight">
             Flight Number: <input type="number" name="flight_num" min="0" max="9999" required><br>
             Departure Date: <input type="date" name="dep_date" required><br>
@@ -52,6 +52,7 @@
         </form>
     {% endif %}
     {% if create_type == 'airplane' %}
+        <h2>Register a New Airplane: </h2>
         <form method="post" action="/create_airplane">
             Airplane ID: <input type="number" name="airplane_id"  min="0" max="999999" required><br>
             Number of Seats: <input type="number" name="num_of_seats" min="0" required><br>
@@ -62,6 +63,7 @@
         </form>
     {% endif %}
     {% if create_type == 'airport' %}
+        <h2>Register a New Airport: </h2>
         <form method="post" action="/create_airport">
             Airport Code: <input type="text" name="code"  required><br>
             Airport Name: <input type="text" name="name" required><br>
@@ -78,6 +80,7 @@
         </form>
     {% endif %}
     {% if create_type == 'maintenance' %}
+        <h2>Schedule Maintenance: </h2>
         <form method="post" action="/schedule_maintenance">
             Start Date: <input type="date" name="start_date" required><br>
             Start Time: <input type="time" name="start_time" required><br>
@@ -87,10 +90,13 @@
             <select id="dynamicDropdown" name="airplane_id" required>
                 {% for option in airplane_ids %}
                 <option value="{{ option[0] }}">{{ option[0] }}</option>
-            {% endfor %}
+                {% endfor %}
             </select><br>
             <input type="submit" value="Create">
         </form>
+    {% endif %}
+    {% if result != "NULL" %}
+        <h4>{{result}}</h4>
     {% endif %}
 </body>
 
