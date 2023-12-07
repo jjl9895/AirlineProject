@@ -1,0 +1,16 @@
+<html>
+<head>
+    <title>Review Flight</title>
+</head>
+
+<body>
+    <h1>Review Your Flight</h1>
+    <form method="post" action="/reviewflight/{{ flight_num }}/{{ dep_date}}/{{dep_time}}/{{airline_name}}">
+        Rating (1-10): <input type="num" name="rating" min="0" max="10" required><br>
+        Comments: <input type="text" name="comments" required><br>
+        <input type="submit" value="Submit Review" >
+    </form>
+
+</body>
+
+</html>
