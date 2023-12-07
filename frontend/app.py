@@ -517,6 +517,11 @@ def create_flight():
         arr_date = request.form.get('arr_date')
         base_price = request.form.get('base_price')
         airplane_id = request.form.get('airplane_id')
+        cursor.execute("SELECT EXISTS(SELECT 1 FROM maintenance WHERE CURDATE() BETWEEN start_date AND end_date AND airplane_id = %s)", (airplane_id,))
+        exists = cursor.fetchall()
+        if exists == 1:
+            raise Exception("Plane under maintenace")
+
         dep_airport = request.form.get('dep_airport')
         arr_airport = request.form.get('arr_airport')
         status = request.form.get('status')
