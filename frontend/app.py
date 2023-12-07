@@ -257,7 +257,6 @@ def last_6m_total():
 def customerhome():
     end_date_tot = datetime.now().date()
     start_date_tot = end_date_tot - relativedelta(years=1)
-    year_spending = last_year_total(start_date_tot, end_date_tot)
     
     end_date_6m = datetime.now().date()
     start_date_6m = end_date_6m - relativedelta(months=6)
@@ -269,6 +268,8 @@ def customerhome():
         if 'start_date_6m' in request.form and 'end_date_6m' in request.form:
             start_date_6m = request.form.get('start_date_6m')
             end_date_6m = request.form.get('end_date_6m')
+
+    year_spending = last_year_total(start_date_tot, end_date_tot)
     try:
         conn = get_db_connection()
         cursor = conn.cursor()

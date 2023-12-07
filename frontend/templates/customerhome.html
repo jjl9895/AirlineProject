@@ -69,7 +69,7 @@
 </div>
 
 <div class="left-element">
-    <h2>Last year you spent:</h2>
+    <h2>Total Spent:</h2>
     <h1>${{year_spending}}</h1>
     <form method="post" action="/customerhome">
         Start Date: <input type="date" name="start_date_tot" required><br>
@@ -83,7 +83,7 @@
             <th>Month</th>
             <th>Amount Spent</th>
         </tr>
-        {% for row in spending %}
+        {% for row in spending_6m %}
         <tr>
             {% for item in row %}
             <td>{{ item }}</td>
