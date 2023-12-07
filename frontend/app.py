@@ -355,7 +355,7 @@ def customerflights():
             FROM PurchaseHistory as ph \
             JOIN Ticket as t on t.id = ph.ticket_id \
             JOIN Flight as f on f.num = t.flight_num \
-            WHERE ph.customer_email = %s AND f.dep_date >= CURDATE()" 
+            WHERE t.customer_email = %s AND f.dep_date >= CURDATE()" 
     
     cursor.execute(query, (customer,))
     future_flights = cursor.fetchall()
@@ -363,7 +363,7 @@ def customerflights():
             FROM PurchaseHistory as ph \
             JOIN Ticket as t on t.id = ph.ticket_id \
             JOIN Flight as f on f.num = t.flight_num \
-            WHERE ph.customer_email = %s AND f.dep_date < CURDATE()"
+            WHERE t.customer_email = %s AND f.dep_date < CURDATE()"
     cursor.execute(query, (customer,))
     past_flights = cursor.fetchall()
     cursor.close()
@@ -386,6 +386,20 @@ def viewcustomers(flight_num, dep_date, dep_time):
 
     return render_template('viewcustomers.html', flight_num=flight_num, dep_date=dep_date, dep_time=dep_time, customers=customers)
 
+@app.route('/canceltrip/<int:flight_num>', methods=['GET'])
+def canceltrip(flight_num):
+    if 'email' not in session:
+        return redirect(url_for('customerlogin'))
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    query = "UPDATE `ticket` SET `customer_email` = NULL WHERE flight_num = %s;"
+    cursor.execute(query, (flight_num, ))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    return (redirect(url_for('customerflights')))
 
 @app.route('/purchasetickets/<int:flight_id>', methods=['GET', 'POST'])
 def purchasetickets(flight_id):
