@@ -233,7 +233,7 @@ def logout():
 def last_year_total(start_date, end_date):
     conn = get_db_connection()
     cursor = conn.cursor()
-    query = "SELECT FORMAT(SUM(price), 2) AS total FROM ticket JOIN purchasehistory ON purchasehistory.ticket_id = ticket.id WHERE purchasehistory.customer_email = %s AND purchase_date BETWEEN %s AND %s;"
+    query = "SELECT FORMAT(SUM(price), 2) AS total FROM ticket JOIN purchasehistory ON purchasehistory.ticket_id = ticket.id WHERE ticket.customer_email = %s AND purchase_date BETWEEN %s AND %s;"
     cursor.execute(query, (session['email'], start_date, end_date))
     total = cursor.fetchone()
     cursor.close()
