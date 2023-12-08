@@ -29,7 +29,7 @@ nikhilconfig = {
     'database': 'projectairport'
 }  
 # Database configuration
-db_config = jeffconfig
+db_config = nikhilconfig
 
 # Establishing a database connection
 def get_db_connection():
@@ -358,7 +358,7 @@ def customerflights():
     customer = session['email']
     conn = get_db_connection()
     cursor = conn.cursor()
-    query = "SELECT DISTINCT(f.num, f.dep_airport, f.arr_airport, f.dep_date, f.dep_time, f.arr_date, f.arr_time, f.status, t.airline_name) \
+    query = "SELECT DISTINCT f.num, f.dep_airport, f.arr_airport, f.dep_date, f.dep_time, f.arr_date, f.arr_time, f.status, t.airline_name \
             FROM PurchaseHistory as ph \
             JOIN Ticket as t on t.id = ph.ticket_id \
             JOIN Flight as f on f.num = t.flight_num \
@@ -366,7 +366,7 @@ def customerflights():
     
     cursor.execute(query, (customer,))
     future_flights = cursor.fetchall()
-    query = "SELECT DISTINCT(f.num, f.dep_airport, f.arr_airport, f.dep_date, f.dep_time, f.arr_date, f.arr_time, f.status, t.airline_name) \
+    query = "SELECT DISTINCT f.num, f.dep_airport, f.arr_airport, f.dep_date, f.dep_time, f.arr_date, f.arr_time, f.status, t.airline_name \
             FROM PurchaseHistory as ph \
             JOIN Ticket as t on t.id = ph.ticket_id \
             JOIN Flight as f on f.num = t.flight_num \
@@ -790,7 +790,6 @@ def get_frequent_customer():
     cursor = conn.cursor()
 
 
-    # Adjust this query to find the most frequent flying customer
     cursor.execute("SELECT Customer.first_name, Customer.last_name, COUNT(*) FROM purchasehistory JOIN Customer JOIN Ticket ON PurchaseHistory.customer_email = Customer.email AND Ticket.customer_email = purchasehistory.customer_email WHERE airline_name = %s AND purchase_date >= CURDATE() - INTERVAL 1 YEAR GROUP BY purchasehistory.customer_email ORDER BY COUNT(*) DESC LIMIT 1", (session['airline'],))
     frequent_customer = cursor.fetchone()
 
@@ -851,7 +850,7 @@ def staff_stats():
         FROM 
             Flight
         JOIN 
-            Reviews ON Flight.num = Reviews.flight_num
+            Reviews ON Flight.num = Reviews.flight_num AND Flight.dep_date = Reviews.dep_date AND Flight.dep_time = Reviews.dep_time
         WHERE
             Flight.airline_name = %s
         ORDER BY 
