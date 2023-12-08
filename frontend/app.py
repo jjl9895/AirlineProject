@@ -370,7 +370,7 @@ def customerflights():
             FROM PurchaseHistory as ph \
             JOIN Ticket as t on t.id = ph.ticket_id \
             JOIN Flight as f on f.num = t.flight_num \
-            WHERE t.customer_email = %s AND f.dep_date < CURDATE() + INTERVAL 1 DAY AND f.dep_date >= CURDATE()" 
+            WHERE t.customer_email = %s AND f.dep_date BETWEEN CURDATE() AND CURDATE() + INTERVAL 1 DAY AND ADDTIME(f.dep_date, f.dep_time) >= NOW() AND ADDTIME(f.dep_date, f.dep_time) < NOW() + INTERVAL 1 DAY" 
     
     cursor.execute(query, (customer,))
     current_flights = cursor.fetchall()
@@ -792,7 +792,7 @@ def get_total_revenue():
 
     try:
         # Query for last month's revenue
-        query = "SELECT SUM(Ticket.price) FROM PurchaseHistory JOIN Ticket ON PurchaseHistory.ticket_id = Ticket.id WHERE PurchaseHistory.purchase_date >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH) AND Ticket.airline_name = %s"
+        query = "SELECT SUM(Ticket.price) FROM PurchaseHistory JOIN Ticket ON PurchaseHistory.ticket_id = Ticket.id WHERE PurchaseHistory.purchase_date >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH) AND Ticket.airline_name = %s AND Ticket.customer_email IS NOT NULL"
         cursor.execute(query, (session['airline'],))
         result = cursor.fetchone()
         last_month_revenue = result[0] if result else 0
