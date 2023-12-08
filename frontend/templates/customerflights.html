@@ -31,7 +31,7 @@
       {% for item in row %}
       <td>{{ item }}</td>
       {% endfor %}
-      <td><a href= "{{ url_for('canceltrip', flight_num=row[0] ) }}">Cancel Trip</a></td>
+      <td><a href= "{{ url_for('canceltrip', flight_num=row[0] , dep_date = row[3], dep_time = row[4]) }}">Cancel Trip</a></td>
     </tr>
     {% endfor %}
     {% for row in past_flights %}

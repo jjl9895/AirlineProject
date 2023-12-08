@@ -233,7 +233,7 @@ def logout():
 def last_year_total(start_date, end_date):
     conn = get_db_connection()
     cursor = conn.cursor()
-    query = "SELECT FORMAT(SUM(price), 2) AS total FROM ticket JOIN purchasehistory ON purchasehistory.ticket_id = ticket.id WHERE purchasehistory.customer_email = %s AND purchase_date BETWEEN %s AND %s;"
+    query = "SELECT FORMAT(SUM(price), 2) AS total FROM ticket JOIN purchasehistory ON purchasehistory.ticket_id = ticket.id WHERE ticket.customer_email = %s AND purchase_date BETWEEN %s AND %s;"
     cursor.execute(query, (session['email'], start_date, end_date))
     total = cursor.fetchone()
     cursor.close()
@@ -279,7 +279,7 @@ def customerhome():
         FROM
             ticket JOIN purchasehistory ON purchasehistory.ticket_id = ticket.id
         WHERE
-            purchasehistory.customer_email = %s AND purchase_date BETWEEN %s AND %s
+            ticket.customer_email = %s AND purchase_date BETWEEN %s AND %s
         GROUP BY
             month
         ORDER BY
@@ -401,15 +401,19 @@ def viewcustomers(flight_num, dep_date, dep_time):
 
     return render_template('viewcustomers.html', flight_num=flight_num, dep_date=dep_date, dep_time=dep_time, customers=customers)
 
-@app.route('/canceltrip/<int:flight_num>', methods=['GET'])
-def canceltrip(flight_num):
+@app.route('/canceltrip/<int:flight_num>/<dep_date>/<dep_time>', methods=['GET', 'POST'])
+def canceltrip(flight_num, dep_date, dep_time):
     if 'email' not in session:
         return redirect(url_for('customerlogin'))
     
     conn = get_db_connection()
     cursor = conn.cursor()
-    query = "UPDATE `ticket` SET `customer_email` = NULL WHERE flight_num = %s;"
-    cursor.execute(query, (flight_num, ))
+    query = "SELECT base_price FROM Flight WHERE num = %s AND dep_date = %s AND dep_time = %s"
+    cursor.execute(query, (flight_num, dep_date, dep_time))
+    price = cursor.fetchone()[0]
+
+    query = "UPDATE `ticket` SET `customer_email` = NULL, `price` = %s WHERE flight_num = %s AND flight_dep_date = %s AND flight_dep_time = %s;"
+    cursor.execute(query, (price, flight_num, dep_date, dep_time))
     conn.commit()
     cursor.close()
     conn.close()
@@ -454,10 +458,10 @@ def purchasetickets(flight_id):
         ticket_list = [ticket[0], ticket[1] + ticket[1] * additional_cost, ticket[2], ticket[3], ticket[4], ticket[5]]
         modified_tickets.append(ticket_list)
 
-    return render_template('purchasetickets.html', flight_id=flight_id, tickets=modified_tickets)
+    return render_template('purchasetickets.html', flight_id=flight_id, tickets=modified_tickets, additional_cost=additional_cost)
 
-@app.route('/buyticket/<int:ticket_id>', methods=['GET', 'POST'])
-def buyticket(ticket_id):
+@app.route('/buyticket/<int:ticket_id>/<float:additional_cost>', methods=['GET', 'POST'])
+def buyticket(ticket_id, additional_cost):
     email = session['email']
     time = datetime.now().time()
     purchase_date = datetime.now().date()
@@ -475,6 +479,10 @@ def buyticket(ticket_id):
         query = "UPDATE Ticket SET customer_email = %s WHERE id = %s"
         cursor.execute(query, (email, ticket_id))
 
+        query = "UPDATE TICKET SET price = price * ( 1 + %s) WHERE id = %s "
+        cursor.execute(query, (additional_cost, ticket_id))
+        conn.commit()
+
         query = "SELECT date_of_birth FROM Customer WHERE email = %s"
         cursor.execute(query, (email,))
         dob = cursor.fetchone()[0]
@@ -489,7 +497,7 @@ def buyticket(ticket_id):
         return redirect(url_for('customerflights'))
 
 
-    return render_template('buyticket.html', ticket_id=ticket_id)
+    return render_template('buyticket.html', ticket_id=ticket_id, additional_cost=additional_cost)
 
 @app.route('/reviewflight/<int:flight_num>/<dep_date>/<dep_time>/<airline_name>', methods=['GET', 'POST'])
 def reviewflight(flight_num, dep_date, dep_time, airline_name):
