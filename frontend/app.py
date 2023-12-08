@@ -370,7 +370,7 @@ def customerflights():
             FROM PurchaseHistory as ph \
             JOIN Ticket as t on t.id = ph.ticket_id \
             JOIN Flight as f on f.num = t.flight_num \
-            WHERE t.customer_email = %s AND f.dep_date < CURDATE() + INTERVAL 1 DAY AND f.dep_date >= CURDATE() AND f.dep_time < CURTIME()" 
+            WHERE t.customer_email = %s AND f.dep_date BETWEEN CURDATE() AND CURDATE() + INTERVAL 1 DAY AND ADDTIME(f.dep_date, f.dep_time) >= NOW() AND ADDTIME(f.dep_date, f.dep_time) < NOW() + INTERVAL 1 DAY" 
     
     cursor.execute(query, (customer,))
     current_flights = cursor.fetchall()
