@@ -279,7 +279,7 @@ def customerhome():
         FROM
             ticket JOIN purchasehistory ON purchasehistory.ticket_id = ticket.id
         WHERE
-            purchasehistory.customer_email = %s AND purchase_date BETWEEN %s AND %s
+            ticket.customer_email = %s AND purchase_date BETWEEN %s AND %s
         GROUP BY
             month
         ORDER BY
@@ -784,7 +784,7 @@ def get_total_revenue():
 
     try:
         # Query for last month's revenue
-        query = "SELECT SUM(Ticket.price) FROM PurchaseHistory JOIN Ticket ON PurchaseHistory.ticket_id = Ticket.id WHERE PurchaseHistory.purchase_date >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH) AND Ticket.airline_name = %s"
+        query = "SELECT SUM(Ticket.price) FROM PurchaseHistory JOIN Ticket ON PurchaseHistory.ticket_id = Ticket.id WHERE PurchaseHistory.purchase_date >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH) AND Ticket.airline_name = %s AND Ticket.customer_email IS NOT NULL"
         cursor.execute(query, (session['airline'],))
         result = cursor.fetchone()
         last_month_revenue = result[0] if result else 0
