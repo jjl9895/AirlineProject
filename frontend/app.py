@@ -547,7 +547,7 @@ def create():
 @app.route('/create_flight', methods=['POST'])
 def create_flight():
     if request.method == 'POST':
-        if 'email' not in session:
+        if 'username' not in session:
             session['next'] = url_for('create_flight')
             return redirect(url_for('stafflogin'))
         # Extract flight details from the form
@@ -638,7 +638,7 @@ def calc_age(date_str):
 @app.route('/create_airplane', methods=['POST'])
 def create_airplane():
     if request.method == 'POST':
-        if 'email' not in session:
+        if 'username' not in session:
             session['next'] = url_for('create_airplane')
             return redirect(url_for('stafflogin'))
         # Extract flight details from the form
@@ -684,7 +684,7 @@ def create_airplane():
 @app.route('/create_airport', methods=['POST'])
 def create_airport():
     if request.method == 'POST':
-        if 'email' not in session:
+        if 'username' not in session:
             session['next'] = url_for('create_airport')
             return redirect(url_for('stafflogin'))
         # Extract flight details from the form
@@ -730,7 +730,7 @@ def create_airport():
 @app.route('/schedule_maintenance', methods=['POST'])
 def schedule_maintenance():
     if request.method == 'POST':
-        if 'email' not in session:
+        if 'username' not in session:
             session['next'] = url_for('schedule_maintenance')
             return redirect(url_for('stafflogin'))
         # Extract flight details from the form
