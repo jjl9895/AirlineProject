@@ -244,7 +244,7 @@ def last_year_total(start_date, end_date):
 def last_6m_total():
     conn = get_db_connection()
     cursor = conn.cursor()
-    query = "SELECT FORMAT(SUM(price), 2) AS total FROM ticket JOIN purchasehistory ON purchasehistory.ticket_id = ticket.id WHERE purchasehistory.customer_email = %s AND purchase_date BETWEEN %s AND %s;"
+    query = "SELECT FORMAT(SUM(price), 2) AS total FROM ticket JOIN purchasehistory ON purchasehistory.ticket_id = ticket.id WHERE ticket.customer_email = %s AND purchase_date BETWEEN %s AND %s;"
     one_year_ago = datetime.now()- timedelta(days=183)
     cursor.execute(query, (session['email'], one_year_ago.date(), datetime.now().date()))
     total = cursor.fetchone()
@@ -818,7 +818,7 @@ def get_frequent_customer():
     cursor = conn.cursor()
 
 
-    cursor.execute("SELECT Customer.first_name, Customer.last_name, COUNT(*) FROM purchasehistory JOIN Customer JOIN Ticket ON PurchaseHistory.customer_email = Customer.email AND Ticket.customer_email = purchasehistory.customer_email WHERE airline_name = %s AND purchase_date >= CURDATE() - INTERVAL 1 YEAR GROUP BY purchasehistory.customer_email ORDER BY COUNT(*) DESC LIMIT 1", (session['airline'],))
+    cursor.execute("SELECT Customer.first_name, Customer.last_name, COUNT(*) FROM purchasehistory JOIN Customer JOIN Ticket ON ticket.customer_email = Customer.email AND Ticket.customer_email = ticket.customer_email WHERE airline_name = %s AND purchase_date >= CURDATE() - INTERVAL 1 YEAR GROUP BY ticket.customer_email ORDER BY COUNT(*) DESC LIMIT 1", (session['airline'],))
     frequent_customer = cursor.fetchone()
 
     cursor.close()
